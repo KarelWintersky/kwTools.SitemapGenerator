@@ -1,12 +1,4 @@
-function format_date($date, $format = 'Y-m-d')
-{
-	if (ctype_digit($date)) {
-		return date($format, $date);
-	} else {
-		return date($format, strtotime($date));
-	}
-}
-
+<?php 
 
 class SitemapFileSaver {
 	
@@ -24,10 +16,10 @@ class SitemapFileSaver {
 	private $sm_separator = '-';
 	
 	// приоритет ссылки по умолчанию
-	private $sm_default_priority = 0.5;
+	private $sm_default_priority = NULL;
 
 	// частота изменения ссылки по умолчанию
-	private $sm_default_changefreq = 'never';
+	private $sm_default_changefreq = NULL;
 
 	// путь к каталогу файлов сайтмапа
 	private $sm_storage_path = '';
@@ -69,12 +61,24 @@ class SitemapFileSaver {
 	*/
 	public function __construct($storage_path = '', $domain, $name, $separator = '-', $priority = 0.5, $changefreq = 'never', $use_gzip = true, $max_size = 50000000, $max_links = 50000)
 	{
+		/* 
+		нам нужно предусмотреть в конструкторе указывать для priority и changefreq
+		пустые строчки. В таком случае соотв. переменная получает значение FALSE
+		и в функции push() соотв. атрибут не используется
+
+		*/
 		$this->sm_storage_path = $storage_path;
 		$this->sm_name = $name;
 		$this->sm_separator = $separator;
-		$this->sm_default_priority = $priority;
-		$this->sm_default_changefreq = $changefreq;
 		$this->sm_use_gzip = $use_gzip;
+
+		if ($priority) {
+			$this->sm_default_priority = $priority;
+		}
+
+		if ($changefreq) {
+			$this->sm_default_changefreq = $changefreq;
+		}
 	}
 	
 	// Запускает генерацию нового файла карты
@@ -142,8 +146,10 @@ class SitemapFileSaver {
 
 
  	// добавляет ссылку в сайтмап. Извне вызывается только эта функция!!!!
+ 	// УДАЛЕНЫ: опциональные значения priority и changefreq. Их изменение для конкретной
+ 	// ссылки мы можем реализовать в будущем (соответственно изменится и конфиг)
 	
-	public function push($location, $lastmod = NULL, $priority = NULL, $changefreq = NULL)
+	public function push($location, $lastmod = NULL)
 	{
 		// проверяем, начат ли (открыт ли на запись) новый файл?
 		if (! $this->xmlw instanceof XMLWriter) {
@@ -179,20 +185,15 @@ class SitemapFileSaver {
 			$this->xmlw->writeElement('lastmod', $this->format_date( time() ));
 		}
 
-		// приоритет 
-		$this->xmlw->writeElement('priority', ( $priority ? $priority : $this->sm_default_priority ) );
+		// значения changefreq и priority едины для всей секции
 
-		// changefreq
-		if ($changefreq) 
-		{
-			$this->xmlw->writeElement('changefreq', $changefreq);
+		if ($this->sm_default_changefreq) {
+			$this->xmlw->writeElement('changefreq', $this->sm_default_changefreq);
 		}
 
-		/* 
-		@todo:
-		Для приоритета используется дефолтное значение, заданное при создании инстанса
-		класса в конструкторе. А для остальных переменных - ничего если не задано при вызове функции push(). Возможно нужно единообразие
-		*/
+		if ($this->sm_default_priority) {
+			$this->xmlw->writeElement('priority', $this->sm_default_priority);	
+		}
 
 		$this->xmlw->endElement();
 
@@ -217,7 +218,17 @@ class SitemapFileSaver {
 	{
 		return $this->sm_files_index;
 	}
+} // end class
+
+function format_date($date, $format = 'Y-m-d')
+{
+	if (ctype_digit($date)) {
+		return date($format, $date);
+	} else {
+		return date($format, strtotime($date));
+	}
 }
+
 
 /**
 $www_location - путь к каталогу с файлами сайтмапов включая домен и финальный слэш
