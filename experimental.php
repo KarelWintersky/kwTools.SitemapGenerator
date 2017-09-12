@@ -1,4 +1,4 @@
-class SitemapSaver {
+class SitemapFileSaver {
 	
 	// инстанс XMLWriter'а
 	private $xmlw;
@@ -18,6 +18,9 @@ class SitemapSaver {
 
 	// частота изменения ссылки по умолчанию
 	private $sm_default_changefreq = 'never';
+
+	// путь к каталогу файлов сайтмапа
+	private $sm_storage_path = '';
 
 	// использовать ли сжатие gzip
 	private $sm_use_gzip = false;
@@ -46,6 +49,7 @@ class SitemapSaver {
 	/**
 	Конструктор класса. Устанавливает значения по умолчанию для данной секции.
 
+	$storage_path - путь к каталогу файлов (от корня сервера или текущего скрипта), заканчивается слешем! (проверка?)
 	$domain - текущий домен (http://localhost/) с конечным слешем
 	$name - имя файла карты, совпадает с именем секции
 	$separator - сепаратор между именем карты и номером (-)
@@ -53,8 +57,9 @@ class SitemapSaver {
 	$changefreq - частота обновления по умолчанию
 	$use_gzip - использовать ли сжатие gzip
 	*/
-	public function __construct($domain, $name, $separator = '-', $priority, $changefreq, $use_gzip = true, $max_size = 50000000, $max_links = 50000)
+	public function __construct($storage_path = '', $domain, $name, $separator = '-', $priority = 0.5, $changefreq = 'never', $use_gzip = true, $max_size = 50000000, $max_links = 50000)
 	{
+		$this->sm_storage_path = $storage_path;
 		$this->sm_name = $name;
 		$this->sm_separator = $separator;
 		$this->sm_default_priority = $priority;
@@ -114,7 +119,7 @@ class SitemapSaver {
 		}
 
 		// пишем в файл подготовленный буфер
-		file_put_contents($filename, $this->xmlw->flush(true));
+		file_put_contents($this->sm_storage_path . $filename, $this->xmlw->flush(true));
 
 		// добавляем имя сгенерированного
 		array_push( $this->sm_files_index, $filename);
@@ -127,7 +132,8 @@ class SitemapSaver {
 
 
  	// добавляет ссылку в сайтмап. Извне вызывается только эта функция!!!!
-	public function push($location, $priority = NULL, $changefreq = NULL, $lastmod = NULL)
+	
+	public function push($location, $lastmod = NULL, $priority = NULL, $changefreq = NULL)
 	{
 		// проверяем, начат ли (открыт ли на запись) новый файл?
 		if (! $this->xmlw instanceof XMLWriter) {
@@ -135,8 +141,6 @@ class SitemapSaver {
 			$this->new();
 		}
 		
-		// НА САМОМ ДЕЛЕ проверка сложнее - надо проверять размер буфера ИЛИ количество 
-		// ссылок в текущем файле
 		// проверяем, не превысило ли текущее количество ссылок в файле карты лимита?
 		// если превысило - закрываем файл и открываем новый
 		
@@ -150,19 +154,71 @@ class SitemapSaver {
 		// добавляем в текущий файл элемент-ссылку на основе переданных параметров
 		// увеличиваем на 1 количество ссылок в текущем файле (точнее буфере)
 		$this->sm_currentfile_links_count++; 
+
+		// начинаем элемент
 		$this->xmlw->startElement('url');
-		$this->xmlw->writeElement('loc', )
 
+		// location с учетом домена
+		$this->xmlw->writeElement('loc', $this->sm_domain . $location);
+		
+		// lastmod
+		if ($lastmod) {
+			$this->xmlw->writeElement('lastmod', $this->format_date($lastmod));
+		} else {
+			// необходимость этой строчки (lastmod is NOW под сомнением )
+			$this->xmlw->writeElement('lastmod', $this->format_date( time() ));
+		}
 
+		// приоритет 
+		$this->xmlw->writeElement('priority', ( $priority ? $priority : $this->sm_default_priority ) );
 
+		// changefreq
+		if ($changefreq) 
+		{
+			$this->xmlw->writeElement('changefreq', $changefreq);
+		}
 
+		/* 
+		@todo:
+		Для приоритета используется дефолтное значение, заданное при создании инстанса
+		класса в конструкторе. А для остальных переменных - ничего если не задано при вызове функции push(). Возможно нужно единообразие
+		*/
+
+		$this->xmlw->endElement();
 
 	}
+
+	// форматирует переданную дату в W3C-представление
+	// из Unix timestamp or any English textual datetime description
+	// в Y-m-d
+	// https://www.w3.org/TR/NOTE-datetime
+	private function format_date($date, $format = 'Y-m-d')
+	{
+		if (ctype_digit($date)) {
+			return date($format, $date);
+		} else {
+			return date($format, strtotime($date));
+		}
+	}
+
 
 	// возвращает список файлов сайтмапов для текущей секции
 	public function getIndex()
 	{
 		return $this->sm_files_index;
 	}
+}
+
+/**
+$sm_location - путь от домена к каталогу с файлами сайтмапов
+$storage_path - путь к файлу
+$files - массив с именами файлов сайтмапов (полный список собирается через array_merge)
+
+*/
+function createSitemapIndex($sm_location, $storage_path, $files, $lastmod = 'Today')
+{
+	$iw = new XMLWriter();
+
+
 
 }
