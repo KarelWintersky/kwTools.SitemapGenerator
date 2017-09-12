@@ -1,0 +1,19 @@
+[host]
+server  = 'towers'
+
+; connection
+[connection]
+main     = 'main'
+
+; -------------------------------------------------------------------------------
+; local
+; -------------------------------------------------------------------------------
+[towers:main]
+driver   = 'mysql'
+hostname = 'localhost'
+username = ''
+password = ''
+database = ''
+port     = 3306
+
+
