@@ -64,11 +64,6 @@ sql_data_id = 'id'
 ; страницы. Используется для атрибута lastmod в файле карты.
 sql_data_lastmod = 'lastmod'
 
-; ПРИМЕЧАНИЕ:
-; запрос может быть и другим, к примеру
-; SELECT CONCAT('/page/xxx/', id) AS it, FORMAT_DATE(mask, lastdate) AS pld FROM price
-; тогда имена полей с данными должны быть it и pld соотв.
-
 ; URL до страницы от корня сайта (исключая домен)
 ; используется маска для sprintf
 url_location = 'price/%s.html'
@@ -80,6 +75,33 @@ url_priority = '0.5'
 ; допустимые значения:
 ; always, hourly, daily, weekly, monthly, yearly, never
 url_changefreq = 'daily'
+```
+
+#### ВАЖНЫЙ МОМЕНТ №1 - Необычные запросы
+
+запрос может быть и другим, к примеру
+```
+SELECT CONCAT('/page/xxx/', id) AS it, FORMAT_DATE(mask, lastdate) AS pld FROM price
+```
+тогда имена полей с данными должны быть it и pld соотв.
+
+#### ВАЖНЫЙ МОМЕНТ №2 - Условные операторы в запросе
+
+Хотя задать условия выборки можно в опциях
+```
+sql_count_request = 'SELECT COUNT(id) AS cnt FROM price WHERE price.actual = 1'
+sql_data_request = 'SELECT id, lastmod FROM price WHERE price.actual = 1'
+```
+
+Эффективнее использовать **представление** (VIEW), к примеру:
+```
+CREATE VIEW actual_price
+AS SELECT id, lastmod FROM price WHERE price.actual = 1;
+```
+Опции будут такими:
+```
+sql_count_request = 'SELECT COUNT(id) AS cnt FROM actual_price'
+sql_data_request = 'SELECT id, lastmod FROM actual_price'
 ```
 
 ## Секция, берущая данные из статического файла
@@ -116,7 +138,7 @@ lastmod = 'NOW()'
 
 ## Проблемы
 
-Если использовать библиотеку XMLWriter - генерация элементов для сайтмапа занимает безумно много времени и затраты времени растут нелинейно:
+Генерация элементов для сайтмапа занимает безумно много времени и затраты времени растут нелинейно:
 Количество строк - секунд на набор
 10000   -   10
 1000    -   0.1
@@ -146,9 +168,15 @@ count($this->xmlw->outputMemory(false))
 Затраты времени на проверку инстанса XMLWriter: 0.14
 Затраты времени на проверку длины буфера: 82.96
 
+100к кусками по 7500:
+Затраты времени на проверку инстанса XMLWriter: 0.12
+Затраты времени на проверку длины буфера: 62.17
+
+Варианты решения:
+а) после генерации каждого элемента в XMLWriter делать flush буфера и хранить его в отдельной переменной
+б) отказаться от XMLWriter`а вообще и генерировать XML самописной "библиотекой"
 
 
 ## Todo
-
 - источник данных - CSV с именованными столбцами
 

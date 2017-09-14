@@ -17,7 +17,7 @@ $dbi = new DBConnection('main');
 
 $qc = 'SELECT COUNT(id) AS cnt FROM testrows';
 $qr = 'SELECT id, lastmod FROM testrows';
-$url_limit = 10000;
+$url_limit = 7500;
 
 $sth = $dbi->getconnection()->query( $qc );
 $sth_result = $sth->fetch();
@@ -63,7 +63,6 @@ for ($i = 0; $i < $chunks_count; $i++) {
 }
 $store->stop();
 
-echo 'Затраты времени на проверку инстанса XMLWriter: ', round( $store->debug_checkinstance_time , 2), PHP_EOL;
 echo 'Затраты времени на проверку длины буфера: ', round( $store->debug_checkbuffer_time, 2), PHP_EOL;
 
 unset($store);

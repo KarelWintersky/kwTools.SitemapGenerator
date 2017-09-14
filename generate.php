@@ -1,4 +1,5 @@
 <?php
+$DEBUG = TRUE;
 
 require_once 'core.sitemapgen.php';
 require_once 'class.dbconnection.php';
@@ -29,7 +30,7 @@ foreach ($all_sections as $section_name => $section_config) {
 		case 'sql': {
 			$sth = $dbi->getconnection()->query( $section_config['sql_count_request'] );
 			$sth_result = $sth->fetch();
-			$source_count = $sth_result[ $section_config['sql_count_value'] ];
+			$url_count = $sth_result[ $section_config['sql_count_value'] ];
 
 			$limit_urls  = at($GLOBAL_SETTINGS, 'limit_urls', 50000);
 			$limit_bytes = at($GLOBAL_SETTINGS, 'limit_bytes', 50000000);
@@ -48,36 +49,57 @@ foreach ($all_sections as $section_name => $section_config) {
 				$limit_bytes,
 				$limit_urls);
 
-			// теперь итератор по кускам в $GLOBAL_SETTINGS['limit_urls']
+			// всего цепочек по $limit_urls в цепочке
+			$chunks_count = (int)ceil($url_count / $limit_urls);
 
 			// смещение в выборке
-			$offset = 0; 
-			// количество выборок (отладка!, см код RPR)
-			$chunks_count = 1 + $source_count/$limit_urls;  
+			$offset = 0;
+			$t = microtime(true);
+			for ($i = 0; $i < $chunks_count; $i++) {
+				if ($DEBUG) echo "Chunk # {$i} started. ", PHP_EOL;
 
-			// вот этот блок кода написан на скорую руку и 100% некорректно
-			// его нужно переписать и отладить 
-			
-			for ($i=0; $i < $chunks_count; $i++) {
- 				$q_data = $section_config['sql_data_request'] . ' LIMIT {$limit_urls} OFFSET {$n}';
- 				$sth = $dbi->getconnection()->query($q_data);
+				$q_chunk = $section_config['sql_data_request'] . " LIMIT {$limit_urls} OFFSET {$offset} ";
 
- 				$chunk = $sth->fetchAll();
+				// if ($DEBUG) echo "Chunk query = `{$q_chunk}` ", PHP_EOL;
 
- 				// теперь итерируем цепочку
- 				array_walk($chunk, function($index, $value) use ($section_config, $store){
- 					$id = $value[ $section_config['sql_data_id']];
- 					$lastmod = $value[ $section_config['sql_data_lastmod']];
- 					$location = sprintf( $section_config['url_location'], $id);
+				$sth = $dbi->getconnection()->query( $q_chunk );
 
- 					// $location, $lastmod = NULL, $priority = NULL, $changefreq = NULL
- 					$store->push( $location, $lastmod );
- 				});
-			}
+				// iterate content
+				$chunk_data = $sth->fetchAll();
+
+				// if ($DEBUG && $chunk_data) echo "Fetch result successfull. ", PHP_EOL;
+
+				$count = 0;
+				// можно сделать через array_walk() с анонимной функцией, но это в полтора раза медленнее (если объявить неименованную функцию как аргумент)
+				/*array_walk($chunk_data, function($index, $value) use ($section_config, $store) {
+					$id = $value[ $section_config['sql_data_id']];
+					$lastmod = $value[ $section_config['sql_data_lastmod']];
+					$location = sprintf( $section_config['url_location'], $id);
+					$store->push( $location, $lastmod );
+				});*/
+
+				foreach ($chunk_data as $record) {
+					$id = $record[ $section_config['sql_data_id'] ];
+					$lastmod = $record[ $section_config['sql_data_lastmod'] ];
+
+					$location = sprintf( $section_config['url_location'], $id);
+
+					$count++;
+					$store->push( $location, $lastmod );
+				}
+
+				if ($DEBUG) echo "[{$section_name}] : Generated sitemap URLs from offset {$offset} and count {$count}. Consumed time: ", round(microtime(true) - $t, 2), " sec.", PHP_EOL;
+				$t = microtime(true);
+
+				$offset += $limit_urls;
+
+				// clear memory
+				unset($sth);
+			} // for each chunk
+			$store->stop();
 
 			// сохраняем список файлов сайтмапа в индексный массив
-			$index_with_sitemap_files = array_merge($index_with_sitemap_files, 
-													$store->getIndex());
+			$index_with_sitemap_files = array_merge($index_with_sitemap_files, $store->getIndex());
 			
 			// деструктим инстанс сейвера
 			$store = null;
@@ -113,8 +135,11 @@ foreach ($all_sections as $section_name => $section_config) {
 	} // end of switch
 } // end of foreach section
 
-createSitemapIndex($GLOBAL_SETTINGS['sitemaps_storage'],
-	$GLOBAL_SETTINGS['sitemaps_mainindex'],
+if ($DEBUG) echo PHP_EOL, 'Generating sitemap index. ', PHP_EOL;
+
+SitemapFileSaver::createSitemapIndex(
+	$GLOBAL_SETTINGS['sitemaps_href'],
+	$GLOBAL_SETTINGS['sitemaps_storage'] . $GLOBAL_SETTINGS['sitemaps_mainindex'],
 	$index_with_sitemap_files,
 	'Today'
 	);
