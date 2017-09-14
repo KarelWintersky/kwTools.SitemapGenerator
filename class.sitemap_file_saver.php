@@ -53,6 +53,10 @@ class SitemapFileSaver {
 	// возвращаем его для построения индекса 
 	private $sm_files_index = array();
 
+	//
+	public $debug_checkinstance_time = 0;
+	public $debug_checkbuffer_time = 0;
+
 	/**
 	 * Конструктор класса. Устанавливает значения по умолчанию для данной секции.
 	 *
@@ -100,14 +104,6 @@ class SitemapFileSaver {
 		$this->xmlw->startElement('urlset');
 		$this->xmlw->writeAttribute('xmlns', self::SCHEMA);
 
-		// $this->buffer = $this->xmlw->flush(true); 
-		
-		// мы можем попробовать не хранить буфер отдельно, а во всех вызовах 
-		// делать flush(false) для получения размера буфера
-
-		// текущий размер буфера
-		$this->buffer_size = count($this->xmlw->flush(false));
-
 		// увеличиваем на 1 номер текущего файла сайтмапа со ссылками
 		$this->sm_currentfile_number++;
 
@@ -119,10 +115,12 @@ class SitemapFileSaver {
 	public function stop()
 	{
 		// проверяем, проинициализирован ли инстанс XMLWriter'а
+		$t = microtime(true);
 		if (! $this->xmlw instanceof XMLWriter ) {
 			$this->start();
 		}
-		$this->xmlw->endElement();
+		$this->debug_checkinstance_time += (microtime(true) - $t);
+		$this->xmlw->fullEndElement();
 		$this->xmlw->endDocument();
 
 		$filename = $this->sm_name . $this->sm_separator . $this->sm_currentfile_number;
@@ -151,34 +149,46 @@ class SitemapFileSaver {
  	}
 
 
- 	// добавляет ссылку в сайтмап. Извне вызывается только эта функция!!!!
- 	// УДАЛЕНЫ: опциональные значения priority и changefreq. Их изменение для конкретной
- 	// ссылки мы можем реализовать в будущем (соответственно изменится и конфиг)
-	
+	/**
+	 * Добавляет ссылку в сайтмап. Извне вызывается только эта функция!!!!
+	 *
+	 * УДАЛЕНЫ: опциональные значения priority и changefreq. Их изменение для конкретной
+	 * ссылки мы можем реализовать в будущем (соответственно изменится и конфиг)
+	 *
+	 * @param $location
+	 * @param null $lastmod
+	 */
 	public function push($location, $lastmod = NULL)
 	{
 		$DEBUG = FALSE;
 
+		$t = microtime(true);
 		// проверяем, начат ли (открыт ли на запись) новый файл?
 		if (! $this->xmlw instanceof XMLWriter) {
 			// нет. Создаем новый файл
 			if ($DEBUG) var_dump("Instance not found, creating new: START()");
 			$this->start();
 		}
+		$this->debug_checkinstance_time += (microtime(true) - $t);
 
 		// проверяем, не превысило ли текущее количество ссылок в файле карты лимита?
 		// если превысило - закрываем файл и открываем новый
 
+		$t = microtime(true);
 		if (
-			(count($this->xmlw->flush(false)) >= $this->max_buffer_size)
+			(count($this->xmlw->outputMemory(false)) >= $this->max_buffer_size)
 			||
 			($this->sm_currentfile_links_count == $this->max_links_count)
 		)
 		{
+			$this->debug_checkbuffer_time += (microtime(true) - $t);
 			if ($DEBUG) var_dump("Started new iteration, STOP() + START()");
 			$this->stop();
 			$this->start();
+		} else {
+			$this->debug_checkbuffer_time += (microtime(true) - $t);
 		}
+
 
 		// добавляем в текущий файл элемент-ссылку на основе переданных параметров
 		// увеличиваем на 1 количество ссылок в текущем файле (точнее буфере)
