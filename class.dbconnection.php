@@ -33,6 +33,7 @@ class DBConnection extends \PDO
             debug_print_backtrace();
             die("\r\n<br>");
         }
+        $key_connection = trim($key_connection);
 
         $database_settings_section_name = StaticConfig::key('host/server') . ':' . StaticConfig::key( "connection/{$key_connection}" );
         $database_settings = StaticConfig::key( $database_settings_section_name );
@@ -123,7 +124,7 @@ LIMIT 1;";
                 $message = "Table {$table_name} not exists. Creating... ";
             }
 
-            $query = file_get_contents(SITE_ROOT . $table_definition_path);
+            $query = file_get_contents($table_definition_path);
 
             if ($query === FALSE) {
                 die("Не найден файл описания таблицы `{$table_name}`");

@@ -8,11 +8,11 @@ require_once 'class.sitemap_file_saver.php';
 
 StaticConfig::init('db.ini');
 
-$dbi = new DBConnection('main ');
+$dbi = new DBConnection('main');
 
 $sm_config = new INI_Config('sitemap.ini');
 
-$GLOBAL_SETTINGS = $sm_config->key('___');
+$GLOBAL_SETTINGS = $sm_config->get('___');
 $sm_config->delete('___');
 $all_sections = $sm_config->getAll();
 
@@ -28,7 +28,9 @@ foreach ($all_sections as $section_name => $section_config) {
 	switch ($section_config['source']) {
 		case 'sql': {
 			$sth = $dbi->getconnection()->query( $section_config['sql_count_request'] );
-			$source_count = $sth->fetchColumn( $section_config['sql_count_value'] );
+			$sth_result = $sth->fetch();
+			$source_count = $sth_result[ $section_config['sql_count_value'] ];
+
 			$limit_urls  = at($GLOBAL_SETTINGS, 'limit_urls', 50000);
 			$limit_bytes = at($GLOBAL_SETTINGS, 'limit_bytes', 50000000);
 
@@ -56,14 +58,14 @@ foreach ($all_sections as $section_name => $section_config) {
 			// вот этот блок кода написан на скорую руку и 100% некорректно
 			// его нужно переписать и отладить 
 			
-			for ($i=0; $i < $chunks_count; i++) {
+			for ($i=0; $i < $chunks_count; $i++) {
  				$q_data = $section_config['sql_data_request'] . ' LIMIT {$limit_urls} OFFSET {$n}';
  				$sth = $dbi->getconnection()->query($q_data);
 
  				$chunk = $sth->fetchAll();
 
  				// теперь итерируем цепочку
- 				array_walk($chunk, function($index, $value) use ($section_config){
+ 				array_walk($chunk, function($index, $value) use ($section_config, $store){
  					$id = $value[ $section_config['sql_data_id']];
  					$lastmod = $value[ $section_config['sql_data_lastmod']];
  					$location = sprintf( $section_config['url_location'], $id);
