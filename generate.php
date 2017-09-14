@@ -56,7 +56,7 @@ foreach ($all_sections as $section_name => $section_config) {
 			$offset = 0;
 			$t = microtime(true);
 			for ($i = 0; $i < $chunks_count; $i++) {
-				if ($DEBUG) echo "Chunk # {$i} started. ", PHP_EOL;
+				// if ($DEBUG) echo "Chunk # {$i} started. ", PHP_EOL;
 
 				$q_chunk = $section_config['sql_data_request'] . " LIMIT {$limit_urls} OFFSET {$offset} ";
 
