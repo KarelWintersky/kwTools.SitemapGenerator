@@ -21,22 +21,23 @@ $all_sections = $sm_config->getAll();
 
 $index_with_sitemap_files = array();
 
+$limit_urls  = at($GLOBAL_SETTINGS, 'limit_urls', 50000);
+$limit_bytes = at($GLOBAL_SETTINGS, 'limit_bytes', 50000000);
+
 foreach ($all_sections as $section_name => $section_config) {
-	// сначала сделаем блок для SQL, он сложнее
 
-	// судя по всему, основные значения нужно грузить здесь, вне свитча
+    if ($DEBUG && array_key_exists('enabled', $section_config) && $section_config['enabled'] == 0) continue;
 
+    // инициализируем значения на основе конфига
+    $url_priority = at($section_config, 'url_priority', 0.5);
+    $url_changefreq = at($section_config, 'url_changefreq', 'never');
+
+    // анализируем тип источника данных в конфиге секции
 	switch ($section_config['source']) {
 		case 'sql': {
 			$sth = $dbi->getconnection()->query( $section_config['sql_count_request'] );
 			$sth_result = $sth->fetch();
 			$url_count = $sth_result[ $section_config['sql_count_value'] ];
-
-			$limit_urls  = at($GLOBAL_SETTINGS, 'limit_urls', 50000);
-			$limit_bytes = at($GLOBAL_SETTINGS, 'limit_bytes', 50000000);
-
-			$url_priority = at($section_config, 'url_priority', 0.5);
-			$url_changefreq = at($section_config, 'url_changefreq', 'never');
 
 			$store = new SitemapFileSaver(
 				$GLOBAL_SETTINGS['sitemaps_storage'],
@@ -45,7 +46,7 @@ foreach ($all_sections as $section_name => $section_config) {
 				at($GLOBAL_SETTINGS, 'sitemaps_filename_separator', '-'),
 				$url_priority,
 				$url_changefreq,
-				at($GLOBAL_SETTINGS, 'use_gzip', true),
+				at($GLOBAL_SETTINGS, 'use_gzip', true),         // at($section_config, 'use_gzip', true) && at($GLOBAL_SETTINGS, 'use_gzip', true), // для возможности использовать use_gzip локально
 				$limit_bytes,
 				$limit_urls);
 
@@ -109,12 +110,46 @@ foreach ($all_sections as $section_name => $section_config) {
 		} // end of 'sql' case
 
 		case 'file': {
+            $contentfile = file( $section_config['filename'] );
+            $url_count = count($contentfile);
 
-			// загружаем значения из конфига
-			// Загружаем все строчки из файла
-			// отдаем их в Store->push() построчно с соотв. локейшеном
+            if ( $section_config['lastmod'] === 'NOW()') {
+                $section_lastmod = time();
+            }
 
-			// обновляем $index_with_sitemap_files
+            $store = new SitemapFileSaver(
+                $GLOBAL_SETTINGS['sitemaps_storage'],
+                $GLOBAL_SETTINGS['sitehref'],
+                at($section_config, 'radical', $section_name),
+                at($GLOBAL_SETTINGS, 'sitemaps_filename_separator', '-'),
+                $url_priority,
+                $url_changefreq,
+                at($GLOBAL_SETTINGS, 'use_gzip', true),         // at($section_config, 'use_gzip', true) && at($GLOBAL_SETTINGS, 'use_gzip', true), // для возможности использовать use_gzip локально
+                $limit_bytes,
+                $limit_urls);
+
+            $t = microtime(true);
+
+            $count = 0;
+
+            foreach ($contentfile as $index => $string) {
+                $lastmod = '';
+                $location = sprintf( $section_config['url_location'], trim($string));
+
+                $count++;
+                $store->push( $location, $lastmod);
+            }
+            $store->stop();
+
+            if ($DEBUG) echo "[{$section_name}] : Generated {$count} sitemap URLs. Consumed time: ", round(microtime(true) - $t, 2), " sec.", PHP_EOL;
+            $t = microtime(true);
+
+            // сохраняем список файлов сайтмапа в индексный массив
+            $index_with_sitemap_files = array_merge($index_with_sitemap_files, $store->getIndex());
+
+            // деструктим инстанс сейвера
+            unset($store);
+            $store = null;
 
 			break;
 		} // end of 'file' case
