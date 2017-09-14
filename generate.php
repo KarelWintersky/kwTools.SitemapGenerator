@@ -13,8 +13,8 @@ $dbi = new DBConnection('main');
 
 $sm_config = new INI_Config('sitemap.ini');
 
-$GLOBAL_SETTINGS = $sm_config->get('___');
-$sm_config->delete('___');
+$GLOBAL_SETTINGS = $sm_config->get('___GLOBAL_SETTINGS___');
+$sm_config->delete('___GLOBAL_SETTINGS___');
 $all_sections = $sm_config->getAll();
 
 // итерируем все секции
