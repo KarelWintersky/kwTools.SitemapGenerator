@@ -4,6 +4,12 @@
  * Date: 13.09.2017, time: 20:02
  */
 
+/*
+ * Для работы перемещаем файл в корень
+ * Этот файл тестирует извлечение данных из таблицы price и генерацию сайтмапа.
+ * Используется вызов обёртки над XMLWriter'ом
+ */
+
 
 require_once 'core.sitemapgen.php';
 require_once 'class.dbconnection.php';
@@ -15,8 +21,8 @@ StaticConfig::init('db.ini');
 
 $dbi = new DBConnection('main');
 
-$qc = 'SELECT COUNT(id) AS cnt FROM testrows';
-$qr = 'SELECT id, lastmod FROM testrows';
+$qc = 'SELECT COUNT(id) AS cnt FROM price';
+$qr = 'SELECT id, lastmod FROM price';
 $url_limit = 7500;
 
 $sth = $dbi->getconnection()->query( $qc );
