@@ -5,11 +5,11 @@ require_once 'class.staticconfig.php';
 require_once 'class.ini_config.php';
 require_once 'class.sitemap_file_saver.php';
 
-StaticConfig::init('db.ini');
+StaticConfig::init('config.db.ini');
 
 $dbi = new DBConnection('main');
 
-$sm_config = new INI_Config('_sitemap.ini');
+$sm_config = new INI_Config('config.sitemap.ini');
 
 $GLOBAL_SETTINGS = $sm_config->get('___GLOBAL_SETTINGS___');
 $sm_config->delete('___GLOBAL_SETTINGS___');

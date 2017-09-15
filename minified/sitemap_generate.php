@@ -621,11 +621,11 @@ class SitemapFileSaver {
 } // end class
 
 /* @include 'generate.php' */
-StaticConfig::init('_db.ini');
+StaticConfig::init('config.db.ini');
 
 $dbi = new DBConnection('main');
 
-$sm_config = new INI_Config('sitemap.ini');
+$sm_config = new INI_Config('config.sitemap.ini');
 
 $GLOBAL_SETTINGS = $sm_config->get('___GLOBAL_SETTINGS___');
 $sm_config->delete('___GLOBAL_SETTINGS___');
