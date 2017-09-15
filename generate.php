@@ -71,15 +71,18 @@ foreach ($all_sections as $section_name => $section_config) {
 				// if ($DEBUG && $chunk_data) echo "Fetch result successfull. ", PHP_EOL;
 
 				$count = 0;
-				// можно сделать через array_walk() с анонимной функцией, но это в полтора раза медленнее (если объявить неименованную функцию как аргумент)
-				/*array_walk($chunk_data, function($index, $value) use ($section_config, $store) {
-					$id = $value[ $section_config['sql_data_id']];
-					$lastmod = $value[ $section_config['sql_data_lastmod']];
-					$location = sprintf( $section_config['url_location'], $id);
-					$store->push( $location, $lastmod );
-				});*/
 
-				foreach ($chunk_data as $record) {
+                // через array_walk() с коллбэком
+                $pusher = function($value) use ($section_config, $store, &$count) {
+                    $id         = $value[ $section_config['sql_data_id'] ];
+                    $lastmod    = $value[ $section_config['sql_data_lastmod']];
+                    $location   = sprintf( $section_config['url_location'], $id);
+                    $count++;
+                    $store->push( $location, $lastmod );
+                };
+                array_walk($chunk_data, $pusher);
+
+				/*foreach ($chunk_data as $record) {
 					$id = $record[ $section_config['sql_data_id'] ];
 					$lastmod = $record[ $section_config['sql_data_lastmod'] ];
 
@@ -87,7 +90,7 @@ foreach ($all_sections as $section_name => $section_config) {
 
 					$count++;
 					$store->push( $location, $lastmod );
-				}
+				}*/
 
 				if ($IS_LOGGING) echo "[{$section_name}] : Generated sitemap URLs from offset {$offset} and count {$count}. Consumed time: ", round(microtime(true) - $t, 2), " sec.", PHP_EOL;
 				$t = microtime(true);
@@ -163,7 +166,7 @@ foreach ($all_sections as $section_name => $section_config) {
 		} // end of 'csv' case
 		
 		default: {
-			echo "Unknown source for section {$section_name}", PHP_EOL;
+            if ($IS_LOGGING) echo "Unknown source for section {$section_name}", PHP_EOL;
 			break;
 		} // end of DEFAULT case
 			
@@ -180,4 +183,5 @@ SitemapFileSaver::createSitemapIndex(
 	);
 $dbi = null;
 
-echo "Total spent time: ", round( microtime(true) - $stat_total_time, 2), " seconds. ", PHP_EOL;
+if ($IS_LOGGING) echo "Total spent time: ", round( microtime(true) - $stat_total_time, 2), " seconds. ", PHP_EOL;
+if ($IS_LOGGING) echo 'Peak memory usage:', memory_get_peak_usage(true), PHP_EOL;
