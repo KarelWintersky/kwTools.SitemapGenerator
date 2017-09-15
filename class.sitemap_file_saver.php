@@ -53,7 +53,7 @@ class SitemapFileSaver {
 	// возвращаем его для построения индекса 
 	private $sm_files_index = array();
 
-	//
+	// debug
 	public $debug_checkbuffer_time = 0;
 
 	/**
@@ -103,6 +103,10 @@ class SitemapFileSaver {
 		$this->xmlw->startElement('urlset');
 		$this->xmlw->writeAttribute('xmlns', self::SCHEMA);
 
+		// Переносим сгенерированный контент в буфер (смотри https://github.com/KarelWintersky/kwSiteMapGen/issues/1 )
+		$this->buffer = $this->xmlw->flush(true);
+		$this->buffer_size = count($this->buffer);
+
 		// увеличиваем на 1 номер текущего файла сайтмапа со ссылками
 		$this->sm_currentfile_number++;
 
@@ -119,24 +123,25 @@ class SitemapFileSaver {
 		}
 		$this->xmlw->fullEndElement();
 		$this->xmlw->endDocument();
+		$this->buffer .= $this->xmlw->flush(true);
+		$this->buffer_size = count($this->buffer);
 
 		$filename = $this->sm_name . $this->sm_separator . $this->sm_currentfile_number;
 
-		// в зависимости от флага "используем упаковку" дополняем имя файла нужным
-		// расширением и подготавливаем буфер
+		// в зависимости от флага "use_gzip" дополняем имя файла нужным и упаковываем контент
 
 		if ($this->sm_use_gzip) {
 			$filename .= '.xml.gz';
-			$buffer = gzencode($this->xmlw->flush(true), 9);
+			$buffer = gzencode($this->buffer, 9);
 		} else {
 			$filename .= '.xml';
-			$buffer = $this->xmlw->flush(true);
+			$buffer = $this->buffer;
 		}
 
 		// пишем в файл подготовленный буфер
 		file_put_contents($this->sm_storage_path . $filename, $buffer);
 
-		// добавляем имя сгенерированного
+		// добавляем имя сгенерированного файла сайтмапа в индекс сайтмапов
 		array_push( $this->sm_files_index, $filename);
 
 		$this->sm_currentfile_links_count = 0;
@@ -169,21 +174,20 @@ class SitemapFileSaver {
 		// проверяем, не превысило ли текущее количество ссылок в файле карты лимита?
 		// если превысило - закрываем файл и открываем новый
 
-		$t = microtime(true);
+		// $t = microtime(true);																// <----- DEBUG
 		if (
 			(count($this->xmlw->outputMemory(false)) >= $this->max_buffer_size)
 			||
 			($this->sm_currentfile_links_count >= $this->max_links_count)
 		)
 		{
-			$this->debug_checkbuffer_time += (microtime(true) - $t);
+			// $this->debug_checkbuffer_time += (microtime(true) - $t);						// <----- DEBUG
 			if ($DEBUG) var_dump("Started new iteration, STOP() + START()");
 			$this->stop();
 			$this->start();
 		} else {
-			$this->debug_checkbuffer_time += (microtime(true) - $t);
+			// $this->debug_checkbuffer_time += (microtime(true) - $t);						// <----- DEBUG
 		}
-
 
 		// добавляем в текущий файл элемент-ссылку на основе переданных параметров
 		// увеличиваем на 1 количество ссылок в текущем файле (точнее буфере)
@@ -199,7 +203,7 @@ class SitemapFileSaver {
 		if ($lastmod) {
 			$this->xmlw->writeElement('lastmod', $this::format_date($lastmod));
 		} else {
-			// необходимость этой строчки (lastmod is NOW под сомнением )
+			//@todo: необходимость этой строчки (установить lastmod в текущий таймштамп ЕСЛИ он не указан в аргументах функции) под сомнением
 			$this->xmlw->writeElement('lastmod', $this::format_date( time() ));
 		}
 
@@ -214,6 +218,9 @@ class SitemapFileSaver {
 		}
 
 		$this->xmlw->endElement();
+
+		$this->buffer .= $this->xmlw->flush(true);
+		$this->buffer_size = count($this->buffer);
 	}
 
 

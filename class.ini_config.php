@@ -7,7 +7,7 @@
  */
 
 /**
- * Class StaticConfig
+ * Class INI_Config
  */
 class INI_Config
 {

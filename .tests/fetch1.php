@@ -23,7 +23,7 @@ $dbi = new DBConnection('main');
 
 $qc = 'SELECT COUNT(id) AS cnt FROM price';
 $qr = 'SELECT id, lastmod FROM price';
-$url_limit = 7500;
+$url_limit = 50000;
 
 $sth = $dbi->getconnection()->query( $qc );
 $sth_result = $sth->fetch();

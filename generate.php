@@ -1,6 +1,4 @@
 <?php
-$DEBUG = TRUE;
-
 require_once 'core.sitemapgen.php';
 require_once 'class.dbconnection.php';
 require_once 'class.staticconfig.php';
@@ -15,18 +13,20 @@ $sm_config = new INI_Config('sitemap.ini');
 
 $GLOBAL_SETTINGS = $sm_config->get('___GLOBAL_SETTINGS___');
 $sm_config->delete('___GLOBAL_SETTINGS___');
-$all_sections = $sm_config->getAll();
-
-// итерируем все секции
-
-$index_with_sitemap_files = array();
 
 $limit_urls  = at($GLOBAL_SETTINGS, 'limit_urls', 50000);
 $limit_bytes = at($GLOBAL_SETTINGS, 'limit_bytes', 50000000);
+$IS_LOGGING  = at($GLOBAL_SETTINGS, 'logging', TRUE);
 
+$all_sections = $sm_config->getAll();
+
+$index_of_sitemap_files = array();
+
+// итерируем все секции
+$stat_total_time = microtime(true);
 foreach ($all_sections as $section_name => $section_config) {
 
-    if ($DEBUG && array_key_exists('enabled', $section_config) && $section_config['enabled'] == 0) continue;
+    if (array_key_exists('enabled', $section_config) && $section_config['enabled'] == 0) continue;
 
     // инициализируем значения на основе конфига
     $url_priority = at($section_config, 'url_priority', 0.5);
@@ -89,7 +89,7 @@ foreach ($all_sections as $section_name => $section_config) {
 					$store->push( $location, $lastmod );
 				}
 
-				if ($DEBUG) echo "[{$section_name}] : Generated sitemap URLs from offset {$offset} and count {$count}. Consumed time: ", round(microtime(true) - $t, 2), " sec.", PHP_EOL;
+				if ($IS_LOGGING) echo "[{$section_name}] : Generated sitemap URLs from offset {$offset} and count {$count}. Consumed time: ", round(microtime(true) - $t, 2), " sec.", PHP_EOL;
 				$t = microtime(true);
 
 				$offset += $limit_urls;
@@ -100,7 +100,7 @@ foreach ($all_sections as $section_name => $section_config) {
 			$store->stop();
 
 			// сохраняем список файлов сайтмапа в индексный массив
-			$index_with_sitemap_files = array_merge($index_with_sitemap_files, $store->getIndex());
+			$index_of_sitemap_files = array_merge($index_of_sitemap_files, $store->getIndex());
 			
 			// деструктим инстанс сейвера
 			$store = null;
@@ -141,11 +141,11 @@ foreach ($all_sections as $section_name => $section_config) {
             }
             $store->stop();
 
-            if ($DEBUG) echo "[{$section_name}] : Generated {$count} sitemap URLs. Consumed time: ", round(microtime(true) - $t, 2), " sec.", PHP_EOL;
+            if ($IS_LOGGING) echo "[{$section_name}] : Generated {$count} sitemap URLs. Consumed time: ", round(microtime(true) - $t, 2), " sec.", PHP_EOL;
             $t = microtime(true);
 
             // сохраняем список файлов сайтмапа в индексный массив
-            $index_with_sitemap_files = array_merge($index_with_sitemap_files, $store->getIndex());
+            $index_of_sitemap_files = array_merge($index_of_sitemap_files, $store->getIndex());
 
             // деструктим инстанс сейвера
             unset($store);
@@ -170,13 +170,14 @@ foreach ($all_sections as $section_name => $section_config) {
 	} // end of switch
 } // end of foreach section
 
-if ($DEBUG) echo PHP_EOL, 'Generating sitemap index. ', PHP_EOL;
+if ($IS_LOGGING) echo PHP_EOL, 'Generating sitemap index. ', PHP_EOL;
 
 SitemapFileSaver::createSitemapIndex(
 	$GLOBAL_SETTINGS['sitemaps_href'],
 	$GLOBAL_SETTINGS['sitemaps_storage'] . $GLOBAL_SETTINGS['sitemaps_mainindex'],
-	$index_with_sitemap_files,
+	$index_of_sitemap_files,
 	'Today'
 	);
-
 $dbi = null;
+
+echo "Total spent time: ", round( microtime(true) - $stat_total_time, 2), " seconds. ", PHP_EOL;
