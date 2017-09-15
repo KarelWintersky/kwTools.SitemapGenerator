@@ -124,7 +124,7 @@ class SitemapFileSaver {
 		$this->xmlw->fullEndElement();
 		$this->xmlw->endDocument();
 		$this->buffer .= $this->xmlw->flush(true);
-		$this->buffer_size = count($this->buffer);
+		$this->buffer_size += count($this->buffer);
 
 		$filename = $this->sm_name . $this->sm_separator . $this->sm_currentfile_number;
 
@@ -174,19 +174,15 @@ class SitemapFileSaver {
 		// проверяем, не превысило ли текущее количество ссылок в файле карты лимита?
 		// если превысило - закрываем файл и открываем новый
 
-		// $t = microtime(true);																// <----- DEBUG
 		if (
-			(count($this->xmlw->outputMemory(false)) >= $this->max_buffer_size)
+			($this->buffer_size >= $this->max_buffer_size)
 			||
 			($this->sm_currentfile_links_count >= $this->max_links_count)
 		)
 		{
-			// $this->debug_checkbuffer_time += (microtime(true) - $t);						// <----- DEBUG
 			if ($DEBUG) var_dump("Started new iteration, STOP() + START()");
 			$this->stop();
 			$this->start();
-		} else {
-			// $this->debug_checkbuffer_time += (microtime(true) - $t);						// <----- DEBUG
 		}
 
 		// добавляем в текущий файл элемент-ссылку на основе переданных параметров
@@ -220,7 +216,7 @@ class SitemapFileSaver {
 		$this->xmlw->endElement();
 
 		$this->buffer .= $this->xmlw->flush(true);
-		$this->buffer_size = count($this->buffer);
+		$this->buffer_size += count($this->buffer);
 	}
 
 

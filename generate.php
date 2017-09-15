@@ -25,30 +25,32 @@ $index_of_sitemap_files = array();
 // итерируем все секции
 $stat_total_time = microtime(true);
 foreach ($all_sections as $section_name => $section_config) {
-
     if (array_key_exists('enabled', $section_config) && $section_config['enabled'] == 0) continue;
 
+    echo_status_cli("<font color='red'>[{$section_name}]</font>");
+
     // инициализируем значения на основе конфига
-    $url_priority = at($section_config, 'url_priority', 0.5);
+    $url_priority   = at($section_config, 'url_priority', 0.5);
     $url_changefreq = at($section_config, 'url_changefreq', 'never');
+
+    $store = new SitemapFileSaver(
+        $GLOBAL_SETTINGS['sitemaps_storage'],
+        $GLOBAL_SETTINGS['sitehref'],
+        at($section_config, 'radical', $section_name),
+        at($GLOBAL_SETTINGS, 'sitemaps_filename_separator', '-'),
+        $url_priority,
+        $url_changefreq,
+        at($section_config, 'use_gzip', true) && at($GLOBAL_SETTINGS, 'use_gzip', true),
+        $limit_bytes,
+        $limit_urls);
 
     // анализируем тип источника данных в конфиге секции
 	switch ($section_config['source']) {
 		case 'sql': {
-			$sth = $dbi->getconnection()->query( $section_config['sql_count_request'] );
+			// get count
+            $sth = $dbi->getconnection()->query( $section_config['sql_count_request'] );
 			$sth_result = $sth->fetch();
 			$url_count = $sth_result[ $section_config['sql_count_value'] ];
-
-			$store = new SitemapFileSaver(
-				$GLOBAL_SETTINGS['sitemaps_storage'],
-				$GLOBAL_SETTINGS['sitehref'],
-				at($section_config, 'radical', $section_name),
-				at($GLOBAL_SETTINGS, 'sitemaps_filename_separator', '-'),
-				$url_priority,
-				$url_changefreq,
-				at($GLOBAL_SETTINGS, 'use_gzip', true),         // at($section_config, 'use_gzip', true) && at($GLOBAL_SETTINGS, 'use_gzip', true), // для возможности использовать use_gzip локально
-				$limit_bytes,
-				$limit_urls);
 
 			// всего цепочек по $limit_urls в цепочке
 			$chunks_count = (int)ceil($url_count / $limit_urls);
@@ -56,43 +58,29 @@ foreach ($all_sections as $section_name => $section_config) {
 			// смещение в выборке
 			$offset = 0;
 			$t = microtime(true);
+
+            // итерация по всем цепочкам
 			for ($i = 0; $i < $chunks_count; $i++) {
-				// if ($DEBUG) echo "Chunk # {$i} started. ", PHP_EOL;
-
 				$q_chunk = $section_config['sql_data_request'] . " LIMIT {$limit_urls} OFFSET {$offset} ";
-
-				// if ($DEBUG) echo "Chunk query = `{$q_chunk}` ", PHP_EOL;
-
 				$sth = $dbi->getconnection()->query( $q_chunk );
-
-				// iterate content
 				$chunk_data = $sth->fetchAll();
-
-				// if ($DEBUG && $chunk_data) echo "Fetch result successfull. ", PHP_EOL;
 
 				$count = 0;
 
-                // через array_walk() с коллбэком
-                $pusher = function($value) use ($section_config, $store, &$count) {
+                /**
+                 * Callback function
+                 * @param $value
+                 */
+                $sql_pusher = function($value) use ($section_config, $store, &$count) {
                     $id         = $value[ $section_config['sql_data_id'] ];
                     $lastmod    = $value[ $section_config['sql_data_lastmod']];
                     $location   = sprintf( $section_config['url_location'], $id);
                     $count++;
                     $store->push( $location, $lastmod );
                 };
-                array_walk($chunk_data, $pusher);
+                array_walk($chunk_data, $sql_pusher);
 
-				/*foreach ($chunk_data as $record) {
-					$id = $record[ $section_config['sql_data_id'] ];
-					$lastmod = $record[ $section_config['sql_data_lastmod'] ];
-
-					$location = sprintf( $section_config['url_location'], $id);
-
-					$count++;
-					$store->push( $location, $lastmod );
-				}*/
-
-				if ($IS_LOGGING) echo "[{$section_name}] : Generated sitemap URLs from offset {$offset} and count {$count}. Consumed time: ", round(microtime(true) - $t, 2), " sec.", PHP_EOL;
+                if ($IS_LOGGING) echo "> Generated sitemap URLs from offset ", str_pad($offset, 7, ' ', STR_PAD_LEFT), " and count ", str_pad($count, 7, ' ', STR_PAD_LEFT), ". Consumed time: ", round(microtime(true) - $t, 2), " sec.", PHP_EOL;
 				$t = microtime(true);
 
 				$offset += $limit_urls;
@@ -105,54 +93,37 @@ foreach ($all_sections as $section_name => $section_config) {
 			// сохраняем список файлов сайтмапа в индексный массив
 			$index_of_sitemap_files = array_merge($index_of_sitemap_files, $store->getIndex());
 			
-			// деструктим инстанс сейвера
-			$store = null;
-			unset($store); 
-
 			break;
 		} // end of 'sql' case
 
 		case 'file': {
             $contentfile = file( $section_config['filename'] );
             $url_count = count($contentfile);
-
-            if ( $section_config['lastmod'] === 'NOW()') {
-                $section_lastmod = time();
-            }
-
-            $store = new SitemapFileSaver(
-                $GLOBAL_SETTINGS['sitemaps_storage'],
-                $GLOBAL_SETTINGS['sitehref'],
-                at($section_config, 'radical', $section_name),
-                at($GLOBAL_SETTINGS, 'sitemaps_filename_separator', '-'),
-                $url_priority,
-                $url_changefreq,
-                at($GLOBAL_SETTINGS, 'use_gzip', true),         // at($section_config, 'use_gzip', true) && at($GLOBAL_SETTINGS, 'use_gzip', true), // для возможности использовать use_gzip локально
-                $limit_bytes,
-                $limit_urls);
-
-            $t = microtime(true);
+            $section_lastmod = ( $section_config['lastmod'] === 'NOW()') ? time() : NULL;
 
             $count = 0;
+            $t = microtime(true);
 
-            foreach ($contentfile as $index => $string) {
-                $lastmod = '';
-                $location = sprintf( $section_config['url_location'], trim($string));
-
+            /**
+             * Callback function
+             * @param $value
+             * @param $index
+             * @param $section_lastmod
+             */
+            $file_pusher = function($value, $index, $section_lastmod) use ($section_config, $store, &$count) {
+                $location = sprintf( $section_config['url_location'], trim($value));
+                $store->push( $location, $section_lastmod );
                 $count++;
-                $store->push( $location, $lastmod);
-            }
+            };
+            array_walk($contentfile, $file_pusher, $section_lastmod);
+
             $store->stop();
 
-            if ($IS_LOGGING) echo "[{$section_name}] : Generated {$count} sitemap URLs. Consumed time: ", round(microtime(true) - $t, 2), " sec.", PHP_EOL;
+            if ($IS_LOGGING) echo "> Generated ", str_pad($count, 7, ' ', STR_PAD_LEFT), "sitemap URLs. Consumed time: ", round(microtime(true) - $t, 2), " sec.", PHP_EOL;
             $t = microtime(true);
 
             // сохраняем список файлов сайтмапа в индексный массив
             $index_of_sitemap_files = array_merge($index_of_sitemap_files, $store->getIndex());
-
-            // деструктим инстанс сейвера
-            unset($store);
-            $store = null;
 
 			break;
 		} // end of 'file' case
@@ -171,9 +142,15 @@ foreach ($all_sections as $section_name => $section_config) {
 		} // end of DEFAULT case
 			
 	} // end of switch
+
+    // деструктим инстанс сейвера
+    $store = null;
+    unset($store);
+
+    echo PHP_EOL;
 } // end of foreach section
 
-if ($IS_LOGGING) echo PHP_EOL, 'Generating sitemap index. ', PHP_EOL;
+if ($IS_LOGGING) echo 'Generating sitemap index. ', PHP_EOL;
 
 SitemapFileSaver::createSitemapIndex(
 	$GLOBAL_SETTINGS['sitemaps_href'],
