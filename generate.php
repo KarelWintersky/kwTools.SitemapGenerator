@@ -9,7 +9,7 @@ StaticConfig::init('db.ini');
 
 $dbi = new DBConnection('main');
 
-$sm_config = new INI_Config('sitemap.ini');
+$sm_config = new INI_Config('_sitemap.ini');
 
 $GLOBAL_SETTINGS = $sm_config->get('___GLOBAL_SETTINGS___');
 $sm_config->delete('___GLOBAL_SETTINGS___');
