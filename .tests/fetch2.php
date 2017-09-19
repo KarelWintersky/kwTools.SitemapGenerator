@@ -14,7 +14,7 @@
 require_once 'core.sitemapgen.php';
 require_once 'class.dbconnection.php';
 require_once 'class.staticconfig.php';
-require_once 'class.ini_config.php';
+require_once 'class.INI_config.php';
 require_once 'class.sitemap_file_saver.php';
 
 StaticConfig::init('config.db.ini');

@@ -6,7 +6,6 @@
  * @param $default_value
  * @return mixed
  */
-
 function at($array, $key, $default_value)
 {
 	if (array_key_exists($key, $array)) {

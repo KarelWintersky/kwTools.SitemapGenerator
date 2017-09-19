@@ -1,13 +1,11 @@
 <?php
 require_once 'core.sitemapgen.php';
-require_once 'class.dbconnection.php';
-require_once 'class.staticconfig.php';
-require_once 'class.ini_config.php';
+require_once 'class.DBConnectionLite.php';
+require_once 'class.INI_config.php';
 require_once 'class.sitemap_file_saver.php';
 
-StaticConfig::init('config.db.ini');
-
-$dbi = new DBConnection('main');
+$db_config = new INI_Config('config.db.ini');
+$dbi = new DBConnectionLite('sitemap', $db_config);
 
 $sm_config = new INI_Config('config.sitemap.ini');
 
@@ -119,7 +117,7 @@ foreach ($all_sections as $section_name => $section_config) {
 
             $store->stop();
 
-            if ($IS_LOGGING) echo "> Generated ", str_pad($count, 7, ' ', STR_PAD_LEFT), "sitemap URLs. Consumed time: ", round(microtime(true) - $t, 2), " sec.", PHP_EOL;
+            if ($IS_LOGGING) echo "> Generated ", str_pad($count, 7, ' ', STR_PAD_LEFT), "  sitemap URLs. Consumed time: ", round(microtime(true) - $t, 2), " sec.", PHP_EOL;
             $t = microtime(true);
 
             // сохраняем список файлов сайтмапа в индексный массив

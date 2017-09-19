@@ -47,9 +47,10 @@ class StaticConfig
 
     /**
      * @param $key
+     * @param null $default_value
      * @return array|null
      */
-    public static function key($key)
+    public static function key($key, $default_value = NULL)
     {
         $path = explode('/', $key);
 
@@ -60,7 +61,7 @@ class StaticConfig
         foreach ($path as $path_key => $path_value) {
             if (isset($r[$path_value])) {
                 $r = $r[$path_value];
-            } else return NULL;
+            } else return $default_value;
         }
         unset($path);
         return $r;
