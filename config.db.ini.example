@@ -3,7 +3,7 @@ server  = 'towers'
 
 ; connection
 [connection]
-main     = 'main'
+sitemap  = 'main'
 
 ; -------------------------------------------------------------------------------
 ; local
