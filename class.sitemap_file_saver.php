@@ -38,6 +38,9 @@ class SitemapFileSaver {
 	// количество ссылок в текущем файле
 	private $sm_currentfile_links_count = 0;
 
+	// формат даты
+	private $specify_date_format;
+
 	// внутренний буфер, содержащий текст текущего файла сайтмапа
 	private $buffer = '';
 
@@ -45,9 +48,11 @@ class SitemapFileSaver {
 	private $buffer_size = 0;
 
 	// лимитирующие значения
+	// размер файла в байтах по умолчанию
 	private $max_buffer_size = 50 * 1000 * 1000;
-	private $max_links_count = 50000;
 
+	// максимальное количество ссылок в файле
+	private $max_links_count = 50000;
 
 	// массив промежуточных файлов сайтмапа данной секции
 	// возвращаем его для построения индекса 
@@ -55,6 +60,8 @@ class SitemapFileSaver {
 
 	// debug
 	public $debug_checkbuffer_time = 0;
+
+
 
 	/**
 	 * Конструктор класса. Устанавливает значения по умолчанию для данной секции.
@@ -100,6 +107,12 @@ class SitemapFileSaver {
 
 		$this->max_buffer_size = $max_size;
 		$this->max_links_count = $max_links;
+
+		if ($date_format_type === 'iso8601') {
+			$this->specify_date_format = 'c';
+		} else {
+			$this->specify_date_format = 'Y-m-d';
+		}
 	}
 	
 	// Запускает генерацию нового файла карты
@@ -209,10 +222,10 @@ class SitemapFileSaver {
 		
 		// lastmod
 		if ($lastmod) {
-			$this->xmlw->writeElement('lastmod', $this::format_date($lastmod));
+			$this->xmlw->writeElement('lastmod', $this::format_date($lastmod, $this->specify_date_format));
 		} else {
 			//@todo: необходимость этой строчки (установить lastmod в текущий таймштамп ЕСЛИ он не указан в аргументах функции) под сомнением
-			$this->xmlw->writeElement('lastmod', $this::format_date( time() ));
+			$this->xmlw->writeElement('lastmod', $this::format_date( time() , $this->specify_date_format));
 		}
 
 		// значения changefreq и priority едины для всей секции

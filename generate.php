@@ -40,7 +40,7 @@ foreach ($all_sections as $section_name => $section_config) {
         $url_changefreq,
         at($section_config, 'use_gzip', true) && at($GLOBAL_SETTINGS, 'use_gzip', true),
         $limit_bytes,
-        $limit_urls);
+        $limit_urls, 'iso8601');
 
     // analyze source type in config section
 	switch ($section_config['source']) {
