@@ -157,5 +157,7 @@ SitemapFileSaver::createSitemapIndex(
 	);
 $dbi = null;
 
-if ($IS_LOGGING) echo "Total spent time: ", round( microtime(true) - $stat_total_time, 2), " seconds. ", PHP_EOL;
-if ($IS_LOGGING) echo 'Peak memory usage:', memory_get_peak_usage(true), PHP_EOL;
+echo PHP_EOL;
+
+if ($IS_LOGGING) echo 'Total spent time:  ', round( microtime(true) - $stat_total_time, 2), ' seconds. ', PHP_EOL;
+if ($IS_LOGGING) echo 'Peak memory usage: ', (memory_get_peak_usage(true) >> 10), ' Kbytes. ',PHP_EOL;
