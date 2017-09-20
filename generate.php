@@ -1,7 +1,7 @@
 <?php
 require_once 'core.sitemapgen.php';
-require_once 'class.DBConnectionLite.php';
 require_once 'class.INI_config.php';
+require_once 'class.DBConnectionLite.php';
 require_once 'class.sitemap_file_saver.php';
 
 $db_config = new INI_Config('config.db.ini');
@@ -20,14 +20,14 @@ $all_sections = $sm_config->getAll();
 
 $index_of_sitemap_files = array();
 
-// итерируем все секции
+// iterate all sections
 $stat_total_time = microtime(true);
 foreach ($all_sections as $section_name => $section_config) {
     if (array_key_exists('enabled', $section_config) && $section_config['enabled'] == 0) continue;
 
     echo_status_cli("<font color='red'>[{$section_name}]</font>");
 
-    // инициализируем значения на основе конфига
+    // init values based on section config
     $url_priority   = at($section_config, 'url_priority', 0.5);
     $url_changefreq = at($section_config, 'url_changefreq', 'never');
 
@@ -42,22 +42,20 @@ foreach ($all_sections as $section_name => $section_config) {
         $limit_bytes,
         $limit_urls);
 
-    // анализируем тип источника данных в конфиге секции
+    // analyze source type in config section
 	switch ($section_config['source']) {
 		case 'sql': {
-			// get count
+
             $sth = $dbi->getconnection()->query( $section_config['sql_count_request'] );
 			$sth_result = $sth->fetch();
 			$url_count = $sth_result[ $section_config['sql_count_value'] ];
 
-			// всего цепочек по $limit_urls в цепочке
 			$chunks_count = (int)ceil($url_count / $limit_urls);
 
-			// смещение в выборке
 			$offset = 0;
 			$t = microtime(true);
 
-            // итерация по всем цепочкам
+            // iterate all chunks
 			for ($i = 0; $i < $chunks_count; $i++) {
 				$q_chunk = $section_config['sql_data_request'] . " LIMIT {$limit_urls} OFFSET {$offset} ";
 				$sth = $dbi->getconnection()->query( $q_chunk );
@@ -83,12 +81,12 @@ foreach ($all_sections as $section_name => $section_config) {
 
 				$offset += $limit_urls;
 
-				// clear memory
-				unset($sth);
+
+				unset($sth); // clear memory
 			} // for each chunk
 			$store->stop();
 
-			// сохраняем список файлов сайтмапа в индексный массив
+			// save sitemap files list to index array
 			$index_of_sitemap_files = array_merge($index_of_sitemap_files, $store->getIndex());
 			
 			break;
@@ -120,7 +118,7 @@ foreach ($all_sections as $section_name => $section_config) {
             if ($IS_LOGGING) echo "> Generated ", str_pad($count, 7, ' ', STR_PAD_LEFT), "  sitemap URLs. Consumed time: ", round(microtime(true) - $t, 2), " sec.", PHP_EOL;
             $t = microtime(true);
 
-            // сохраняем список файлов сайтмапа в индексный массив
+            // save sitemap files list to index array
             $index_of_sitemap_files = array_merge($index_of_sitemap_files, $store->getIndex());
 
 			break;
@@ -141,7 +139,7 @@ foreach ($all_sections as $section_name => $section_config) {
 			
 	} // end of switch
 
-    // деструктим инстанс сейвера
+    // destruct SAVER instance
     $store = null;
     unset($store);
 
