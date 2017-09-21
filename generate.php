@@ -67,8 +67,10 @@ SMG_WELCOME;
     $dbi = new DBConnectionLite(NULL, $DB_SETTINGS);
     if (!$dbi->is_connected) die(1);
 } else {
-// мы запущены через другой интерфейс
-    $db_config = new INI_Config('config.db.ini');
+    die("KW's Sitemap Generator can't be launched in browser.");
+    // мы запущены через другой интерфейс
+
+    /*$db_config = new INI_Config('config.db.ini');
     $dbi = new DBConnectionLite('sitemap', $db_config);
     if (!$dbi->is_connected) die('Connection error.');
 
@@ -76,7 +78,7 @@ SMG_WELCOME;
 
     $sm_config = new INI_Config('config.sitemap.ini');
     $GLOBAL_SETTINGS = $sm_config->get('___GLOBAL_SETTINGS___');
-    $sm_config->delete('___GLOBAL_SETTINGS___');
+    $sm_config->delete('___GLOBAL_SETTINGS___');*/
 }
 
 
