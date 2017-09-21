@@ -83,15 +83,16 @@ function echo_status_cli($message = "", $breakline = TRUE)
 
 /**
  * Wrapper around echo/echo_status_cli
+ * Выводит сообщение на экран. Если мы вызваны из командной строки - заменяет теги на управляющие последовательности.
  * @param $message
  * @param bool|TRUE $breakline
  */
-function logger($message, $breakline = TRUE)
+function echo_status($message = "", $breakline = TRUE)
 {
 	if (php_sapi_name() === "cli") {
 		echo_status_cli($message, $breakline);
 	} else {
-		if ($breakline === TRUE) $message .= PHP_EOL . "<br />";
+		if ($breakline === TRUE) $message .= PHP_EOL . "<br/>\r\n";
 		echo $message;
 	}
 }

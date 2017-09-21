@@ -85,29 +85,24 @@ function echo_status_cli($message = "", $breakline = TRUE)
 
 /**
  * Wrapper around echo/echo_status_cli
+ * Выводит сообщение на экран. Если мы вызваны из командной строки - заменяет теги на управляющие последовательности.
  * @param $message
  * @param bool|TRUE $breakline
  */
-function logger($message, $breakline = TRUE)
+function echo_status($message = "", $breakline = TRUE)
 {
 	if (php_sapi_name() === "cli") {
 		echo_status_cli($message, $breakline);
 	} else {
-		if ($breakline === TRUE) $message .= PHP_EOL . "<br />";
+		if ($breakline === TRUE) $message .= PHP_EOL . "<br/>\r\n";
 		echo $message;
 	}
 }
 
 /**/
-/**
-@todo: Специальные функции удаления ключей:
-->delete('price/*');      // удалить все элементы из секции prices кроме самой секции
-->delete('price/source'); // удалить ->price->source
-->delete('price');        // удалить секцию price
- */
 
 /**
- * Class INI_Config, version 1.0
+ * Class INI_Config, version 1.0.1
  */
 class INI_Config
 {
@@ -169,8 +164,6 @@ class INI_Config
     {
         $this->init($filepath, $subpath);
     }
-    //-------------------------------------------------------------------------------------------------------
-    // https://stackoverflow.com/a/44189105/5127037
 
     /**
      * @param $parents
@@ -260,9 +253,6 @@ class INI_Config
     {
         return $this->config;
     }
-
-
-
 
 }
 
@@ -694,9 +684,15 @@ class SitemapFileSaver {
 /* end class.SitemapFileSaver.php */
 $GLOBAL_SETTINGS = array();
 
-if (php_sapi_name() === "cli") {
-    $this_filename = basename($argv[0]);
-    $hint_message = <<<SMG_USAGE
+// check SAPI status: script can be launched only from console
+if (php_sapi_name() !== "cli") {
+    die("KW's Sitemap Generator can't be launched in browser.");
+}
+
+// get config filename
+$this_filename = basename($argv[0]);
+
+$hint_message = <<<SMG_USAGE
 
 {$this_filename}: <font color="red">missing config file</font>
 
@@ -705,71 +701,79 @@ or
 <font color="white">Usage: </font> {$this_filename} --help
 
 SMG_USAGE;
-    $welcome_message = <<<SMG_WELCOME
+$welcome_message = <<<SMG_WELCOME
 ------------------------------------------------------------------------------
-<font color="white">{$this_filename}</font> is a sitemap generator with configs based on .ini-files
+<font color="white">{$this_filename}</font> is a <strong>Karel Wintersky's Sitemap Generator</strong> with configs based on .ini-files
+© Karel Wintersky, 2017, <font color="dgray">https://github.com/KarelWintersky/kwTools.SitemapGenerator</font>
+------------------------------------------------------------------------------
 
 SMG_WELCOME;
 
-    echo_status_cli($welcome_message);
+echo_status_cli($welcome_message);
 
-    // аргумент --help выводит справку
-    if (($argc == 1) || ($argv[1] === '--help')) {
-        echo_status_cli($hint_message);
-        die;
-    }
+// аргумент --help выводит справку
+if (($argc == 1) || ($argv[1] === '--help')) {
+    echo_status_cli($hint_message);
+    die;
+}
 
-    // в противном случае ожидается, что в 1 аргументе передан инишник, а в нем ожидаются секции:
-    // ___GLOBAL_SETTINGS___/db_section_suffix (не может быть пустой!)
-    // ___GLOBAL_SETTINGS:<suffix>___
-    $argv_config_filepath = $argv[1];
-    $argv_config_path = dirname($argv_config_filepath);
+// в противном случае ожидается, что в 1 аргументе передан инишник, а в нем ожидаются секции:
+$argv_config_filepath = $argv[1];
+$argv_config_path = dirname($argv_config_filepath);
 
-    $sm_config = new INI_Config( $argv_config_filepath );
+$sm_config = new INI_Config( $argv_config_filepath );
+$GLOBAL_SETTINGS = $sm_config->get('___GLOBAL_SETTINGS___');
 
-    $db_section_suffix = $sm_config->get('___GLOBAL_SETTINGS___/db_section_suffix');
+// получим суффикс секции с данными подключения к БД
+$db_section_suffix = $sm_config->get('___GLOBAL_SETTINGS___/db_section_suffix', '');
 
-    if ($db_section_suffix === NULL) {
-        echo_status_cli("<font color='lred'>[ERROR]</font> : Key <font color='cyan'> ___GLOBAL_SETTINGS___/db_section_suffix </font> not declared in file <font color='yellow'>{$argv_config_filepath}</font>" . PHP_EOL);
-        echo_status_cli('See <font color="cyan">https://github.com/KarelWintersky/kwTools.SitemapGenerator</font> for assistance' . PHP_EOL);
-        die(1);
-    }
+if ($db_section_suffix === NULL) {
+    // опции нет совсем
+    echo_status_cli("<font color='lred'>[ERROR]</font> : Key <font color='cyan'> ___GLOBAL_SETTINGS___/db_section_suffix </font> not declared in file <font color='yellow'>{$argv_config_filepath}</font>" . PHP_EOL);
+    echo_status_cli('See <font color="green">https://github.com/KarelWintersky/kwTools.SitemapGenerator</font> for assistance' . PHP_EOL);
+    die(1);
+} elseif ($db_section_suffix === '') {
+    // опция - пустая строчка
+    $dbi = NULL;
+    echo_status_cli("<font color='yellow'>[WARNING]</font> Key <font color='cyan'>___GLOBAL_SETTINGS___/db_section_suffix </font> is <strong>EMPTY</strong> in file <font color='yellow'>{$argv_config_filepath}</font>");
+    echo_status_cli("Database connection can't be established.");
+    echo_status_cli("Any sections with <strong>source='sql'</strong> will be skipped.");
+    echo_status_cli(PHP_EOL);
 
+} else {
+    // опция есть, непустая строчка
     $DB_SETTINGS = $sm_config->get("___GLOBAL_SETTINGS:{$db_section_suffix}___");
 
     if ($DB_SETTINGS === NULL) {
-        echo_status_cli("<font color='lred'>[ERROR]</font> : Config section <font color='cyan'>[___GLOBAL_SETTINGS___:{$db_section_suffix}]</font> not found in file <font color='yellow'>{$argv_config_filepath}</font>" . PHP_EOL);
-        echo_status_cli('See <font color="cyan">https://github.com/KarelWintersky/kwTools.SitemapGenerator</font> for assistance'  . PHP_EOL);
+        echo_status_cli("<font color='lred'>[ERROR]</font> : Config section <font color='cyan'>[___GLOBAL_SETTINGS:{$db_section_suffix}___]</font> not found in file <font color='yellow'>{$argv_config_filepath}</font>" . PHP_EOL);
+        echo_status_cli('See <font color="green">https://github.com/KarelWintersky/kwTools.SitemapGenerator</font> for assistance'  . PHP_EOL);
         die(2);
     }
 
-    $GLOBAL_SETTINGS = $sm_config->get('___GLOBAL_SETTINGS___');
-
-    $sm_config->delete('___GLOBAL_SETTINGS___');
-    $sm_config->delete("___GLOBAL_SETTINGS:{$db_section_suffix}___");
-
     $dbi = new DBConnectionLite(NULL, $DB_SETTINGS);
     if (!$dbi->is_connected) die(1);
-} else {
-    die("KW's Sitemap Generator can't be launched in browser.");
 }
 
 $limit_urls  = at($GLOBAL_SETTINGS, 'limit_urls', 50000);
 $limit_bytes = at($GLOBAL_SETTINGS, 'limit_bytes', 50000000);
 $IS_LOGGING  = at($GLOBAL_SETTINGS, 'logging', TRUE);
 
+$sm_config->delete('___GLOBAL_SETTINGS___');
+$sm_config->delete('___GLOBAL_SETTINGS:DATABASE___');
+$sm_config->delete("___GLOBAL_SETTINGS:{$db_section_suffix}___");
+
 $all_sections = $sm_config->getAll();
 
 $index_of_sitemap_files = array();
 
-if ($IS_LOGGING) logger("<strong>Generating sitemap</strong> based on <font color='yellow'>{$argv_config_filepath}</font>" . PHP_EOL);
+if ($IS_LOGGING) echo_status("<strong>Generating sitemap</strong> based on <font color='yellow'>{$argv_config_filepath}</font>" . PHP_EOL);
 
 // iterate all sections
 $stat_total_time = microtime(true);
 foreach ($all_sections as $section_name => $section_config) {
     if (array_key_exists('enabled', $section_config) && $section_config['enabled'] == 0) continue;
 
-    if ($IS_LOGGING) logger("<font color='yellow'>[{$section_name}]</font>");
+    if ($IS_LOGGING) echo_status("<font color='yellow'>[{$section_name}]</font>");
 
     // init values based on section config
     $url_priority   = at($section_config, 'url_priority', 0.5);
@@ -790,6 +794,11 @@ foreach ($all_sections as $section_name => $section_config) {
     // analyze source type in config section
 	switch ($section_config['source']) {
 		case 'sql': {
+            if ($dbi === NULL) {
+                echo_status("Нельзя использовать секцию с источником данных SQL - отсутствует подключение к БД");
+                unset($store);
+                continue; // next section
+            }
 
             $sth = $dbi->getconnection()->query( $section_config['sql_count_request'] );
 			$sth_result = $sth->fetch();
@@ -813,15 +822,17 @@ foreach ($all_sections as $section_name => $section_config) {
                  * @param $value
                  */
                 $sql_pusher = function($value) use ($section_config, $store, &$count) {
-                    $id         = at($value, $section_config['sql_data_id'] , NULL);
-                    $lastmod    = at($value, $section_config['sql_data_lastmod'], NULL);
+                    $id         = $value[ $section_config['sql_data_id'] ];
+                    // $lastmod    = $value[ $section_config['sql_data_lastmod']];
+
+                    $lastmod = ($section_config['sql_data_lastmod'] === 'NOW()') ? NULL : $value[ $section_config['sql_data_lastmod']];
                     $location   = sprintf( $section_config['url_location'], $id);
                     $count++;
                     $store->push( $location, $lastmod );
                 };
                 array_walk($chunk_data, $sql_pusher);
 
-                if ($IS_LOGGING) logger("+ Generated sitemap URLs from offset " . str_pad($offset, 7, ' ', STR_PAD_LEFT) . " and count " . str_pad($count, 7, ' ', STR_PAD_LEFT) . ". Consumed time: " . round(microtime(true) - $t, 2) .  " sec.");
+                if ($IS_LOGGING) echo_status("+ Generated sitemap URLs from offset " . str_pad($offset, 7, ' ', STR_PAD_LEFT) . " and count " . str_pad($count, 7, ' ', STR_PAD_LEFT) . ". Consumed time: " . round(microtime(true) - $t, 2) .  " sec.");
 				$t = microtime(true);
 
 				$offset += $limit_urls;
@@ -843,8 +854,8 @@ foreach ($all_sections as $section_name => $section_config) {
             }
 
             if (!file_exists($path_to_file)) {
-                logger("<font color='lred'>[ERROR]<font> File {$path_to_file} declared in section {$section_name}, option [filename] : not found!");
-                logger("<font color='lred'>This section will be ignored!</font>");
+                echo_status("<font color='lred'>[ERROR]<font> File {$path_to_file} declared in section {$section_name}, option [filename] : not found!");
+                echo_status("<font color='lred'>This section will be ignored!</font>");
                 unset($store);
                 continue;
             }
@@ -871,7 +882,7 @@ foreach ($all_sections as $section_name => $section_config) {
 
             $store->stop();
 
-            if ($IS_LOGGING) logger("+ Generated " . str_pad($count, 7, ' ', STR_PAD_LEFT) . "  sitemap URLs. Consumed time: " . round(microtime(true) - $t, 2) . " sec.");
+            if ($IS_LOGGING) echo_status("+ Generated " . str_pad($count, 7, ' ', STR_PAD_LEFT) . "  sitemap URLs. Consumed time: " . round(microtime(true) - $t, 2) . " sec.");
             $t = microtime(true);
 
             // save sitemap files list to index array
@@ -889,7 +900,7 @@ foreach ($all_sections as $section_name => $section_config) {
 		} // end of 'csv' case
 		
 		default: {
-            if ($IS_LOGGING) logger("<font color='lred'>[ERROR]<font> Unknown source type for section {$section_name}");
+            if ($IS_LOGGING) echo_status("<font color='lred'>[ERROR]<font> Unknown source type for section {$section_name}");
 			break;
 		} // end of DEFAULT case
 			
@@ -902,18 +913,18 @@ foreach ($all_sections as $section_name => $section_config) {
     echo PHP_EOL;
 } // end of foreach section
 
-if ($IS_LOGGING) logger("<font color='yellow'>[sitemap.xml]</font>") ;
+if ($IS_LOGGING) echo_status("<font color='yellow'>[sitemap.xml]</font>") ;
 
 SitemapFileSaver::createSitemapIndex(
 	$GLOBAL_SETTINGS['sitemaps_href'],
-	$GLOBAL_SETTINGS['sitemaps_storage'] . $GLOBAL_SETTINGS['sitemaps_mainindex'],
+	$GLOBAL_SETTINGS['sitemaps_mainindex'],
 	$index_of_sitemap_files,
 	'Today'
 	);
-if ($IS_LOGGING) logger("+ Generated sitemap index." . PHP_EOL);
+if ($IS_LOGGING) echo_status("+ Generated sitemap index." . PHP_EOL);
 
 $dbi = null;
 
-if ($IS_LOGGING) logger("<strong>Finished.</strong>" . PHP_EOL);
-if ($IS_LOGGING) logger('Total spent time:  <strong>' . round( microtime(true) - $stat_total_time, 2) . '</strong> seconds. ');
-if ($IS_LOGGING) logger('Peak memory usage: <strong>' . (memory_get_peak_usage(true) >> 10) . '</strong> Kbytes. ' . PHP_EOL);
+if ($IS_LOGGING) echo_status("<strong>Finished.</strong>" . PHP_EOL);
+if ($IS_LOGGING) echo_status('Total spent time:  <strong>' . round( microtime(true) - $stat_total_time, 2) . '</strong> seconds. ');
+if ($IS_LOGGING) echo_status('Peak memory usage: <strong>' . (memory_get_peak_usage(true) >> 10) . '</strong> Kbytes. ' . PHP_EOL);

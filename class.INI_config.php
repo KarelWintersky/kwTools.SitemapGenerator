@@ -1,13 +1,7 @@
 <?php
-/**
-@todo: Специальные функции удаления ключей:
-->delete('price/*');      // удалить все элементы из секции prices кроме самой секции
-->delete('price/source'); // удалить ->price->source
-->delete('price');        // удалить секцию price
- */
 
 /**
- * Class INI_Config, version 1.0
+ * Class INI_Config, version 1.0.1
  */
 class INI_Config
 {
@@ -69,8 +63,6 @@ class INI_Config
     {
         $this->init($filepath, $subpath);
     }
-    //-------------------------------------------------------------------------------------------------------
-    // https://stackoverflow.com/a/44189105/5127037
 
     /**
      * @param $parents
@@ -160,9 +152,6 @@ class INI_Config
     {
         return $this->config;
     }
-
-
-
 
 }
 
