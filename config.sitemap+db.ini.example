@@ -9,6 +9,15 @@ limit_bytes = 50000000
 use_gzip = 1
 logging = 1
 date_format_type = 'iso8601'
+db_section_suffix = 'DATABASE'
+
+[___GLOBAL_SETTINGS:DATABASE___]
+driver   = 'mysql'
+hostname = 'localhost'
+username = ''
+password = ''
+database = ''
+port     = 3306
 
 ;объявления
 [price]
@@ -70,7 +79,7 @@ url_changefreq = 'daily'
 [countries]
 radical = 'countries'
 source = 'file'
-filename = 'data.countries.txt'
+filename = '$/data.countries.txt'
 url_location = 'country/%s/'
 url_priority = '0.5'
 url_changefreq = 'daily'
@@ -80,7 +89,7 @@ lastmod = 'NOW()'
 [static]
 radical = 'static'
 source = 'file'
-filename = 'data.staticpages.txt'
+filename = '$/data.staticpages.txt'
 url_location = '%s'
 url_priority = '0.5'
 url_changefreq = 'daily'

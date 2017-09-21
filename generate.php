@@ -6,11 +6,6 @@ require_once 'class.SitemapFileSaver.php';
 
 $GLOBAL_SETTINGS = array();
 
-// если мы запущены в CLI - читаем аргументы и выводим справку либо ожидаем, что первым аргументом будет ini-файл
-// со всеми необходимыми настройками подключения:
-// ключ ___GLOBAL_SETTINGS___/db_section_suffix содержит суффикс секции с настройками доступа к БД
-// секция ___GLOBAL_SETTINGS:<suffix>___/* содержит настройки подключения
-// аргумент --help выводит справку
 if (php_sapi_name() === "cli") {
     $this_filename = basename($argv[0]);
     $hint_message = <<<SMG_USAGE
@@ -39,14 +34,15 @@ SMG_WELCOME;
     // в противном случае ожидается, что в 1 аргументе передан инишник, а в нем ожидаются секции:
     // ___GLOBAL_SETTINGS___/db_section_suffix (не может быть пустой!)
     // ___GLOBAL_SETTINGS:<suffix>___
-    $sm_config_file = $argv[1];
+    $argv_config_filepath = $argv[1];
+    $argv_config_path = dirname($argv_config_filepath);
 
-    $sm_config = new INI_Config( $sm_config_file );
+    $sm_config = new INI_Config( $argv_config_filepath );
 
     $db_section_suffix = $sm_config->get('___GLOBAL_SETTINGS___/db_section_suffix');
 
     if ($db_section_suffix === NULL) {
-        echo_status_cli("<font color='lred'>[ERROR]</font> : Key <font color='cyan'> ___GLOBAL_SETTINGS___/db_section_suffix </font> not declared in file <font color='yellow'>{$sm_config_file}</font>" . PHP_EOL);
+        echo_status_cli("<font color='lred'>[ERROR]</font> : Key <font color='cyan'> ___GLOBAL_SETTINGS___/db_section_suffix </font> not declared in file <font color='yellow'>{$argv_config_filepath}</font>" . PHP_EOL);
         echo_status_cli('See <font color="cyan">https://github.com/KarelWintersky/kwTools.SitemapGenerator</font> for assistance' . PHP_EOL);
         die(1);
     }
@@ -54,7 +50,7 @@ SMG_WELCOME;
     $DB_SETTINGS = $sm_config->get("___GLOBAL_SETTINGS:{$db_section_suffix}___");
 
     if ($DB_SETTINGS === NULL) {
-        echo_status_cli("<font color='lred'>[ERROR]</font> : Config section <font color='cyan'>[___GLOBAL_SETTINGS___:{$db_section_suffix}]</font> not found in file <font color='yellow'>{$sm_config_file}</font>" . PHP_EOL);
+        echo_status_cli("<font color='lred'>[ERROR]</font> : Config section <font color='cyan'>[___GLOBAL_SETTINGS___:{$db_section_suffix}]</font> not found in file <font color='yellow'>{$argv_config_filepath}</font>" . PHP_EOL);
         echo_status_cli('See <font color="cyan">https://github.com/KarelWintersky/kwTools.SitemapGenerator</font> for assistance'  . PHP_EOL);
         die(2);
     }
@@ -68,19 +64,7 @@ SMG_WELCOME;
     if (!$dbi->is_connected) die(1);
 } else {
     die("KW's Sitemap Generator can't be launched in browser.");
-    // мы запущены через другой интерфейс
-
-    /*$db_config = new INI_Config('config.db.ini');
-    $dbi = new DBConnectionLite('sitemap', $db_config);
-    if (!$dbi->is_connected) die('Connection error.');
-
-    $sm_config_file = 'config.sitemap.ini';
-
-    $sm_config = new INI_Config('config.sitemap.ini');
-    $GLOBAL_SETTINGS = $sm_config->get('___GLOBAL_SETTINGS___');
-    $sm_config->delete('___GLOBAL_SETTINGS___');*/
 }
-
 
 $limit_urls  = at($GLOBAL_SETTINGS, 'limit_urls', 50000);
 $limit_bytes = at($GLOBAL_SETTINGS, 'limit_bytes', 50000000);
@@ -90,7 +74,7 @@ $all_sections = $sm_config->getAll();
 
 $index_of_sitemap_files = array();
 
-if ($IS_LOGGING) logger("<strong>Generating sitemap</strong> based on <font color='yellow'>{$sm_config_file}</font>" . PHP_EOL);
+if ($IS_LOGGING) logger("<strong>Generating sitemap</strong> based on <font color='yellow'>{$argv_config_filepath}</font>" . PHP_EOL);
 
 // iterate all sections
 $stat_total_time = microtime(true);
@@ -164,7 +148,20 @@ foreach ($all_sections as $section_name => $section_config) {
 		} // end of 'sql' case
 
 		case 'file': {
-            $contentfile = file( $section_config['filename'] );
+            $path_to_file = $section_config['filename'];
+
+            if (strpos($path_to_file, '$') !== FALSE) {
+                $path_to_file = str_replace('$', $argv_config_path, $path_to_file);
+            }
+
+            if (!file_exists($path_to_file)) {
+                logger("<font color='lred'>[ERROR]<font> File {$path_to_file} declared in section {$section_name}, option [filename] : not found!");
+                logger("<font color='lred'>This section will be ignored!</font>");
+                unset($store);
+                continue;
+            }
+
+            $contentfile = file( $path_to_file );
             $url_count = count($contentfile);
             $section_lastmod = ( $section_config['lastmod'] === 'NOW()') ? time() : NULL;
 
@@ -204,7 +201,7 @@ foreach ($all_sections as $section_name => $section_config) {
 		} // end of 'csv' case
 		
 		default: {
-            if ($IS_LOGGING) logger("Unknown source for section {$section_name}");
+            if ($IS_LOGGING) logger("<font color='lred'>[ERROR]<font> Unknown source type for section {$section_name}");
 			break;
 		} // end of DEFAULT case
 			
