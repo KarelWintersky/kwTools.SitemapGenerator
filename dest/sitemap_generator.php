@@ -813,8 +813,8 @@ foreach ($all_sections as $section_name => $section_config) {
                  * @param $value
                  */
                 $sql_pusher = function($value) use ($section_config, $store, &$count) {
-                    $id         = $value[ $section_config['sql_data_id'] ];
-                    $lastmod    = $value[ $section_config['sql_data_lastmod']];
+                    $id         = at($value, $section_config['sql_data_id'] , NULL);
+                    $lastmod    = at($value, $section_config['sql_data_lastmod'], NULL);
                     $location   = sprintf( $section_config['url_location'], $id);
                     $count++;
                     $store->push( $location, $lastmod );
