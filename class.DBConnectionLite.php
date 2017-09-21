@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Class DBConnectionLite
+ * Class DBConnectionLite v 1.1
  * Используется вариативный конфиг (либо инстанс INI_Config и ключ подключения, либо ключ подключения для статика)
  * based on DBConnection ver 1.8
  */
@@ -34,7 +34,7 @@ class DBConnectionLite extends \PDO
         } elseif (get_class($config_argv) === 'INI_Config') {
             // Конфиг передан как инстанс класса INI_Config
 
-            $section_name = (($key_connection === '') ? '' : ':' . $config_argv->get( "connection/{$key_connection}" ));
+            $section_name = empty($key_connection) ? '' : ':' . $config_argv->get( "connection/{$key_connection}" );
             $database_settings_section_name = $config_argv->get('host/server') . $section_name;
             $database_settings = $config_argv->get( $database_settings_section_name );
             $this->table_prefix = $config_argv->get(
@@ -47,7 +47,7 @@ class DBConnectionLite extends \PDO
         } elseif (is_null($config_argv)) {
             // передан NULL, используется StaticConfig
 
-            $section_name = ($key_connection === '') ? '' : ':' . StaticConfig::key( "connection/{$key_connection}" );
+            $section_name = empty($key_connection) ? '' : ':' . StaticConfig::key( "connection/{$key_connection}" );
             $database_settings_section_name = StaticConfig::key('host/server') . $section_name;
             $database_settings = StaticConfig::key( $database_settings_section_name );
             $this->table_prefix = StaticConfig::key(

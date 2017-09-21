@@ -87,7 +87,7 @@ class SitemapFileSaver {
 		$use_gzip = true,
 		$max_size = 50000000,
 		$max_links = 50000,
-		$date_format_type = 'YMD'
+		$date_format_type = 'iso8601'
 	)
 	{
 		$this->sm_storage_path = $storage_path;
