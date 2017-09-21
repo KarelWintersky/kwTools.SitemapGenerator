@@ -13,20 +13,39 @@ class DBConnectionLite extends \PDO
     private $database_settings = array();
     private $pdo_connection;
     private $table_prefix = '';
-    private $is_connected = FALSE;
+    public $is_connected = FALSE;
 
     /**
      * @param $key_connection - если передана пустая строка - используем секцию, равную имени host/server (что может быть проще в некоторых случаях)
-     * @param INI_Config|NULL $config_instance
+     * @param INI_Config|NULL $config_argv
      */
-    public function __construct($key_connection, \INI_Config $config_instance = NULL)
+    public function __construct($key_connection, $config_argv = NULL)
     {
         $config_type = -1;
         $database_settings = array();
         $key_connection = trim($key_connection);
 
-        if (is_null($config_instance)) {
-            // используется StaticConfig
+        // проверяем тип переданного конфига
+        if (is_array($config_argv)) {
+            // Если конфиг передан как массив параметров (содержимое определенной секции)
+            $database_settings = $config_argv;
+            $this->table_prefix = $config_argv['table_prefix'] ?? '';
+
+        } elseif (get_class($config_argv) === 'INI_Config') {
+            // Конфиг передан как инстанс класса INI_Config
+
+            $section_name = (($key_connection === '') ? '' : ':' . $config_argv->get( "connection/{$key_connection}" ));
+            $database_settings_section_name = $config_argv->get('host/server') . $section_name;
+            $database_settings = $config_argv->get( $database_settings_section_name );
+            $this->table_prefix = $config_argv->get(
+                $database_settings_section_name . '/table_prefix'
+            );
+
+            // в одну строчку
+            // $this->database_settings = $config_instance->get( $config_instance->get('host/server') . (($key_connection === '') ? '' : ':' . $config_instance->get( "connection/{$key_connection}" )) );
+
+        } elseif (is_null($config_argv)) {
+            // передан NULL, используется StaticConfig
 
             $section_name = ($key_connection === '') ? '' : ':' . StaticConfig::key( "connection/{$key_connection}" );
             $database_settings_section_name = StaticConfig::key('host/server') . $section_name;
@@ -38,20 +57,9 @@ class DBConnectionLite extends \PDO
             // in single line
             // $this->database_settings = StaticConfig::key( StaticConfig::key('host/server') . (($key_connection === '') ? '' : ':' . StaticConfig::key( "connection/{$key_connection}" )) );
 
-        } elseif (get_class($config_instance) === 'INI_Config') {
-            // передан инстанс класса INI_Config
-
-            $section_name = (($key_connection === '') ? '' : ':' . $config_instance->get( "connection/{$key_connection}" ));
-            $database_settings_section_name = $config_instance->get('host/server') . $section_name;
-            $database_settings = $config_instance->get( $database_settings_section_name );
-            $this->table_prefix = $config_instance->get(
-                $database_settings_section_name . '/table_prefix'
-            );
-
-            // в одну строчку
-            // $this->database_settings = $config_instance->get( $config_instance->get('host/server') . (($key_connection === '') ? '' : ':' . $config_instance->get( "connection/{$key_connection}" )) );
         } else {
-            die('Unknown config: ' . get_class($config_instance));
+            // передано непонятно что
+            die('Unknown config: ' . get_class($config_argv));
         }
 
         $this->database_settings = $database_settings;
@@ -73,7 +81,7 @@ class DBConnectionLite extends \PDO
 
             $this->pdo_connection = $dbh;
         } catch (\PDOException $e) {
-            echo "\r\n PDO CONNECTION ERROR: " . $e->getMessage() . "\r\n";
+            echo "\r\nPDO CONNECTION ERROR: " . $e->getMessage() . "\r\n";
 
             $this->connect_error = "Database connection error!: " . $e->getMessage() . "<br/>";
             $this->pdo_connection = null;
@@ -100,3 +108,5 @@ class DBConnectionLite extends \PDO
 
 
 }
+
+/* end class.DBConnectionLite.php */

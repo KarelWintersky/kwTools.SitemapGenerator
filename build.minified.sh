@@ -5,7 +5,8 @@ DIR_DEST='./dest'
 
 echo 'Generating all-in-one php-file'
 
-cp $DIR_SOURCES/generate.php $DIR_DEST/sitemap_generator.php
+echo '#!/usr/bin/php' > $DIR_DEST/sitemap_generator.php
+cat $DIR_SOURCES/generate.php >> $DIR_DEST/sitemap_generator.php
 
 echo 'Incapsulating core.sitemapgen.php'
 cp $DIR_SOURCES/core.sitemapgen.php __tmp__.php
@@ -22,12 +23,13 @@ cp $DIR_SOURCES/class.DBConnectionLite.php __tmp__.php
 sed -i "1s/.*/\/\*\*\//" __tmp__.php
 sed -i -e "/class\.DBConnectionLite\.php/{r __tmp__.php"  -e 'd}' $DIR_DEST/sitemap_generator.php
 
-echo 'Incapsulating class.sitemap_file_saver.php'
-cp $DIR_SOURCES/class.sitemap_file_saver.php __tmp__.php
+echo 'Incapsulating class.SitemapFileSaver.php'
+cp $DIR_SOURCES/class.SitemapFileSaver.php __tmp__.php
 sed -i "1s/.*/\/\*\*\//" __tmp__.php
-sed -i -e "/class\.sitemap_file_saver\.php/{r __tmp__.php"  -e 'd}' $DIR_DEST/sitemap_generator.php
+sed -i -e "/class\.SitemapFileSaver\.php/{r __tmp__.php"  -e 'd}' $DIR_DEST/sitemap_generator.php
 
 rm -f __tmp__.php
 
 echo 'Ok.'
 echo "$DIR_DEST/sitemap_generator.php GENERATED"
+

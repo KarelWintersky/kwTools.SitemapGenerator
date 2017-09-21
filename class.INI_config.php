@@ -47,7 +47,17 @@ class INI_Config
 
             unset($new_config);
         } else {
-            die("<strong>FATAL ERROR:</strong> Config file `{$filepath}` not found. ".PHP_EOL);
+            $message = "<strong>FATAL ERROR:</strong> Config file `{$filepath}` not found. " . PHP_EOL;
+
+            if (function_exists('echo_status_cli')) {
+                echo_status_cli($message);
+                die(1);
+            } else {
+                if (php_sapi_name() === "cli") {
+                    $message = strip_tags($message);
+                }
+                die($message);
+            }
         }
     }
 
@@ -155,3 +165,5 @@ class INI_Config
 
 
 }
+
+/* end class.INI_Config.php */

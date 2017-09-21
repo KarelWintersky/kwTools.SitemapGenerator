@@ -28,19 +28,26 @@ function echo_status_cli($message = "", $breakline = TRUE)
 	static $fgcolors = array(
 		'black' => '0;30',
 		'dark gray' => '1;30',
+		'dgray' => '1;30',
 		'blue' => '0;34',
 		'light blue' => '1;34',
+		'lblue' => '1;34',
 		'green' => '0;32',
 		'light green' => '1;32',
+		'lgreen' => '1;32',
 		'cyan' => '0;36',
 		'light cyan' => '1;36',
+		'lcyan' => '1;36',
 		'red' => '0;31',
 		'light red' => '1;31',
+		'lred' => '1;31',
 		'purple' => '0;35',
 		'light purple' => '1;35',
+		'lpurple' => '1;35',
 		'brown' => '0;33',
 		'yellow' => '1;33',
 		'light gray' => '0;37',
+		'lgray' => '0;37',
 		'white' => '1;37');
 	static $bgcolors = array(
 		'black' => '40',
@@ -57,11 +64,36 @@ function echo_status_cli($message = "", $breakline = TRUE)
 		? str_repeat('-', 80) : $message;
 
 	$pattern = '#(?<Full>\<font[\s]+color=[\\\'\"](?<Color>[\D]+)[\\\'\"]\>(?<Content>.*)\<\/font\>)#U';
-	$message = strip_tags(preg_replace_callback($pattern, function($matches) use ($fgcolors){
+	$message = preg_replace_callback($pattern, function($matches) use ($fgcolors){
 		$color = isset( $fgcolors[ $matches['Color'] ]) ? $fgcolors[ $matches['Color'] ] : $fgcolors[ 'white' ];
 		return "\033[{$color}m{$matches['Content']}\033[0m";
+	}, $message);
+
+	// replace <strong> by <font color=
+	$pattern_strong = '#(?<Full>\<strong\>(?<Content>.*)\<\/strong\>)#U';
+	$message = strip_tags(preg_replace_callback($pattern_strong, function($matches) use ($fgcolors){
+		$color = $fgcolors['white'];
+		return "\033[{$color}m{$matches['Content']}\033[0m";
 	}, $message) );
+
 
 	if ($breakline === TRUE) $message .= PHP_EOL;
 	echo $message;
 }
+
+/**
+ * Wrapper around echo/echo_status_cli
+ * @param $message
+ * @param bool|TRUE $breakline
+ */
+function logger($message, $breakline = TRUE)
+{
+	if (php_sapi_name() === "cli") {
+		echo_status_cli($message, $breakline);
+	} else {
+		if ($breakline === TRUE) $message .= PHP_EOL . "<br />";
+		echo $message;
+	}
+}
+
+/* end core.sitemap.gen */

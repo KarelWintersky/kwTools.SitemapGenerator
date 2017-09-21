@@ -311,3 +311,5 @@ class SitemapFileSaver {
 	} // end createSitemapIndex()
 
 } // end class
+
+/* end class.SitemapFileSaver.php */
