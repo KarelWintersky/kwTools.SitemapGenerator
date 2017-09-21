@@ -1,4 +1,4 @@
 .idea
-.other
 config.db.ini
-sitemap_generator.php
+config.sitemap+db.ini
+example~config.db.ini.example
