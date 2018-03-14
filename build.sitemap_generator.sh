@@ -1,6 +1,6 @@
 #!/bin/bash
 # Generating minimized file (all-in-one)
-DIR_SOURCES='./sources_v1'
+DIR_SOURCES='./sources'
 DIR_DEST='./production'
 FILE_SOURCE='generator.php'
 FILE_DEST='sitemap_generator.php'

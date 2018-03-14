@@ -1,0 +1,32 @@
+[___GLOBAL_SETTINGS___]
+db_section_suffix = 'DATABASE'
+partial_count = 5000
+
+[___GLOBAL_SETTINGS:DATABASE___]
+driver   = 'mysql'
+hostname = 'localhost'
+username = ''
+password = ''
+database = 'test'
+port     = 3306
+
+;объявления
+[price]
+enabled = 1
+count = 50000
+
+;компании
+[company]
+enabled = 1
+count = 10000
+
+;новости
+[news]
+enabled = 1
+count = 20000
+
+;статьи
+[articles]
+enabled = 1
+count = 33333
+

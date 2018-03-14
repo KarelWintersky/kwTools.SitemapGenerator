@@ -1,6 +1,7 @@
 .idea
-.tests
+.git
+.localfiles
 sources/config.db.ini
 sources/config.sitemap+db.ini
-dest/config.sitemap+db.ini
-dest/config.db.ini
+tests/make_db_seed.ini
+production/config.sitemap+db.ini
