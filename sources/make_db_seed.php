@@ -91,7 +91,7 @@ foreach ($all_sections as $section_name => $section_config) {
     $dbi->getconnection()->query("DROP TABLE IF EXISTS `{$section_name}`");
     $dbi->getconnection()->query( sprintf($TABLE_SCHEME, $section_name) );
 
-    CLIConsole::echo_status("Generating {$count} rows for table {$section_name}");
+    CLIConsole::echo_status("Generating {$count} rows for table <font color='yellow'>{$section_name}</font>");
 
     // fill table data
     for ($i=0; $i<$count; $i++) {
