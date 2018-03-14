@@ -1,7 +1,7 @@
 #!/bin/bash
 # Generating minimized file (all-in-one)
-DIR_SOURCES='./'
-DIR_DEST='./dest'
+DIR_SOURCES='./sources'
+DIR_DEST='./production'
 FILE_DEST='sitemap_generator.php'
 
 echo 'Generating all-in-one php-file'

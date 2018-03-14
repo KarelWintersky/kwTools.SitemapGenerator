@@ -1,5 +1,5 @@
 .idea
-config.db.ini
-config.sitemap+db.ini
+sources/config.db.ini
+sources/config.sitemap+db.ini
 dest/config.sitemap+db.ini
 dest/config.db.ini
