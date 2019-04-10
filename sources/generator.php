@@ -181,7 +181,7 @@ foreach ($all_sections as $section_name => $section_config) {
             }
 
             if (!file_exists($path_to_file)) {
-                CLIConsole::echo_status("<font color='lred'>[ERROR]<font> File {$path_to_file} declared in section {$section_name}, option [filename] : not found!");
+                CLIConsole::echo_status("<font color='lred'>[ERROR]</font> File {$path_to_file} declared in section {$section_name}, option [filename] : not found!");
                 CLIConsole::echo_status("<font color='lred'>This section will be ignored!</font>");
                 unset($store);
                 continue;
@@ -227,7 +227,7 @@ foreach ($all_sections as $section_name => $section_config) {
         } // end of 'csv' case
 
         default: {
-            if ($IS_LOGGING) CLIConsole::echo_status("<font color='lred'>[ERROR]<font> Unknown source type for section {$section_name}");
+            if ($IS_LOGGING) CLIConsole::echo_status("<font color='lred'>[ERROR]</font> Unknown source type for section {$section_name}");
             break;
         } // end of DEFAULT case
 
