@@ -4,7 +4,7 @@
  * Date: 14.03.2018, time: 22:40
  * Date: 14.05.2019, time: 16:00
  */
-const KWT_SITEMAPGEN_VERSION = '1.5.3';
+const KWT_SITEMAPGEN_VERSION = '1.5.4';
 
 require_once 'class.INI_Config.php';
 require_once 'class.DBConnectionLite.php';

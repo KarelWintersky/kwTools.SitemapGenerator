@@ -206,7 +206,7 @@ class SitemapFileSaver {
         // смотри https://github.com/KarelWintersky/kwSiteMapGen/issues/1 )
 
 		$this->buffer = $this->xmlw->flush(true);
-		$this->buffer_size = count($this->buffer);
+		$this->buffer_size = strlen($this->buffer);
 
 		// увеличиваем на 1 номер текущего файла сайтмапа со ссылками
 		$this->sm_currentfile_number++;
