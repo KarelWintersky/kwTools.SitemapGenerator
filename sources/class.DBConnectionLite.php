@@ -7,7 +7,7 @@
  *
  * Date: 15.03.2018, time: 0:31
  */
-class DBConnection extends \PDO
+class DBConnectionLite extends \PDO
 {
     private $database_settings = array();
     private $pdo_connection;
@@ -15,6 +15,10 @@ class DBConnection extends \PDO
     public  $is_connected = FALSE;
     public  $error_message = '';
 
+    /**
+     * DBConnection constructor.
+     * @param $db_settings
+     */
     public function __construct($db_settings)
     {
         $database_settings = $db_settings;
@@ -27,6 +31,8 @@ class DBConnection extends \PDO
         $dbuser = $database_settings['username'];
         $dbpass = $database_settings['password'];
         $dbport = $database_settings['port'];
+
+
 
         $dsl = "mysql:host=$dbhost;port=$dbport;dbname=$dbname";
 

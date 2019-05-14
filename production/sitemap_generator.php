@@ -3,7 +3,10 @@
 /**
  * User: Karel Wintersky
  * Date: 14.03.2018, time: 22:40
+ * Date: 14.05.2019, time: 16:00
  */
+const KWT_SITEMAPGEN_VERSION = '1.5.3';
+
 /**/
 
 /**
@@ -170,7 +173,7 @@ class INI_Config
  *
  * Date: 15.03.2018, time: 0:31
  */
-class DBConnection extends \PDO
+class DBConnectionLite extends \PDO
 {
     private $database_settings = array();
     private $pdo_connection;
@@ -178,6 +181,10 @@ class DBConnection extends \PDO
     public  $is_connected = FALSE;
     public  $error_message = '';
 
+    /**
+     * DBConnection constructor.
+     * @param $db_settings
+     */
     public function __construct($db_settings)
     {
         $database_settings = $db_settings;
@@ -190,6 +197,8 @@ class DBConnection extends \PDO
         $dbuser = $database_settings['username'];
         $dbpass = $database_settings['password'];
         $dbport = $database_settings['port'];
+
+
 
         $dsl = "mysql:host=$dbhost;port=$dbport;dbname=$dbname";
 
@@ -396,64 +405,136 @@ class CLIConsole
  * Class SitemapFileSaver
  */
 class SitemapFileSaver {
-	// Sitemap XML schema
+    const VERSION = '1.5.3';
+
+    /**
+     * Sitemap XML schema
+     */
 	const SCHEMA = 'http://www.sitemaps.org/schemas/sitemap/0.9';
 	
-	// инстанс XMLWriter'а
+    /**
+     * инстанс XMLWriter'а
+     *
+     * @var XMLWriter
+     */
 	private $xmlw;
 
-	// внутренние переменные 
-	// домен с конечным слешем
+	/* === внутренние переменные === */
+    /**
+     * домен с конечным слешем
+     *
+     * @var string
+     */
 	private $sm_domain = ''; 
 
-	// корень имени файла карты (имя секции)
+    /**
+     * корень имени файла карты (имя секции)
+     *
+     * @var string
+     */
 	private $sm_name = '';
 
-	// разделитель между корнем имени карты и номером
+    /**
+     * разделитель между корнем имени карты и номером
+     *
+     * @var string
+     */
 	private $sm_separator = '-';
 	
-	// приоритет ссылки по умолчанию
+    /**
+     * приоритет ссылки по умолчанию
+     *
+     * @var float|null
+     */
 	private $sm_default_priority = NULL;
 
-	// частота изменения ссылки по умолчанию
+    /**
+     * частота изменения ссылки по умолчанию
+     *
+     * @var string|null
+     */
 	private $sm_default_changefreq = NULL;
 
-	// путь к каталогу файлов сайтмапа
+    /**
+     * путь к каталогу файлов сайтмапа
+     *
+     * @var string
+     */
 	private $sm_storage_path = '';
 
-	// использовать ли сжатие gzip
+    /**
+     * использовать ли сжатие gzip
+     *
+     * @var bool|false
+     */
 	private $sm_use_gzip = false;
 
-	// номер текущего файла, содержащего ссылки. На старте - 0
+    /**
+     * номер текущего файла, содержащего ссылки. На старте - 0
+     *
+     * @var int
+     */
 	private $sm_currentfile_number = 0;
 
-	// количество ссылок в текущем файле
+    /**
+     * количество ссылок в текущем файле
+     *
+     * @var int
+     */
 	private $sm_currentfile_links_count = 0;
 
-	// формат даты
+    /**
+     * формат даты
+     *
+     * @var string
+     */
 	private $specify_date_format;
 
-	// внутренний буфер, содержащий текст текущего файла сайтмапа
+    /**
+     * внутренний буфер, содержащий текст текущего файла сайтмапа
+     *
+     * @var string
+     */
 	private $buffer = '';
 
-	// размер внутреннего буфера с текущей (генерируемой вотпрямщас) сайтмап-картой
+    /**
+     * размер внутреннего буфера с текущей (генерируемой вотпрямщас) сайтмап-картой
+     *
+     * @var int
+     */
 	private $buffer_size = 0;
 
-	// лимитирующие значения
-	// размер файла в байтах по умолчанию
+    /**
+     * массив промежуточных файлов сайтмапа данной секции
+     * возвращаем его для построения индекса
+     *
+     * @var array
+     */
+    private $sm_files_index = array();
+
+    /* === лимитирующие значения === */
+
+    /**
+     *
+     * максимальный размер файла в байтах по умолчанию
+     *
+     * @var int
+     */
 	private $max_buffer_size = 50 * 1000 * 1000;
 
-	// максимальное количество ссылок в файле
+    /**
+     * максимальное количество ссылок в файле
+     *
+     * @var int
+     */
 	private $max_links_count = 50000;
 
-	// массив промежуточных файлов сайтмапа данной секции
-	// возвращаем его для построения индекса 
-	private $sm_files_index = array();
-
-	// debug
+    /**
+     * debug
+     *
+     * @var int
+     */
 	public $debug_checkbuffer_time = 0;
-
-
 
 	/**
 	 * Конструктор класса. Устанавливает значения по умолчанию для данной секции.
@@ -470,7 +551,7 @@ class SitemapFileSaver {
 	 * @param string $date_format_type -- тип формата даты (iso8601 или YMD)
 	 */
 	public function __construct(
-		$storage_path = '',
+		$storage_path,
 		$domain,
 		$name,
 		$separator = '-',
@@ -522,7 +603,9 @@ class SitemapFileSaver {
 		$this->xmlw->startElement('urlset');
 		$this->xmlw->writeAttribute('xmlns', self::SCHEMA);
 
-		// Переносим сгенерированный контент в буфер (смотри https://github.com/KarelWintersky/kwSiteMapGen/issues/1 )
+		// Переносим сгенерированный контент в буфер
+        // смотри https://github.com/KarelWintersky/kwSiteMapGen/issues/1 )
+
 		$this->buffer = $this->xmlw->flush(true);
 		$this->buffer_size = count($this->buffer);
 
@@ -545,7 +628,7 @@ class SitemapFileSaver {
 		$this->xmlw->fullEndElement();
 		$this->xmlw->endDocument();
 		$this->buffer .= $this->xmlw->flush(true);
-		$this->buffer_size += count($this->buffer);
+		$this->buffer_size += strlen($this->buffer);
 
 		$filename = $this->sm_name . $this->sm_separator . $this->sm_currentfile_number;
 
@@ -636,7 +719,7 @@ class SitemapFileSaver {
 		$this->xmlw->endElement();
 
 		$this->buffer .= $this->xmlw->flush(true);
-		$this->buffer_size += count($this->buffer);
+		$this->buffer_size += strlen($this->buffer);
 	}
 
 
@@ -715,7 +798,7 @@ $this_filename = basename($argv[0]); // get file basename
 $welcome_message = <<<SMG_WELCOME
 
 <font color="white">{$this_filename}</font> is a <strong>Karel Wintersky's Configurable Sitemap Generator</strong> with .ini-files as configs
-© Karel Wintersky, 2018, <font color="dgray">https://github.com/KarelWintersky/kwTools.SitemapGenerator</font>
+© Karel Wintersky, 2019, <font color="dgray">https://github.com/KarelWintersky/kwTools.SitemapGenerator</font>
 
 SMG_WELCOME;
 
@@ -774,7 +857,7 @@ MSG_DBSECTION_NOTFOUND;
         die(2);
     }
 
-    $dbi = new DBConnection($DB_SETTINGS);
+    $dbi = new DBConnectionLite($DB_SETTINGS);
     if (!$dbi->is_connected) die($dbi->error_message);
 }
 
@@ -878,7 +961,7 @@ foreach ($all_sections as $section_name => $section_config) {
             }
 
             if (!file_exists($path_to_file)) {
-                CLIConsole::echo_status("<font color='lred'>[ERROR]<font> File {$path_to_file} declared in section {$section_name}, option [filename] : not found!");
+                CLIConsole::echo_status("<font color='lred'>[ERROR]</font> File {$path_to_file} declared in section {$section_name}, option [filename] : not found!");
                 CLIConsole::echo_status("<font color='lred'>This section will be ignored!</font>");
                 unset($store);
                 continue;
@@ -924,7 +1007,7 @@ foreach ($all_sections as $section_name => $section_config) {
         } // end of 'csv' case
 
         default: {
-            if ($IS_LOGGING) CLIConsole::echo_status("<font color='lred'>[ERROR]<font> Unknown source type for section {$section_name}");
+            if ($IS_LOGGING) CLIConsole::echo_status("<font color='lred'>[ERROR]</font> Unknown source type for section {$section_name}");
             break;
         } // end of DEFAULT case
 

@@ -20,10 +20,10 @@ cp $DIR_SOURCES/class.INI_Config.php __tmp__.php
 sed -i "1s/.*/\/\*\*\//" __tmp__.php
 sed -i -e "/class\.INI_Config\.php/{r __tmp__.php"  -e 'd}' $DIR_DEST/$FILE_DEST
 
-echo 'Incapsulating class.DBConnection.php'
-cp $DIR_SOURCES/class.DBConnection.php __tmp__.php
+echo 'Incapsulating class.DBConnectionLite.php'
+cp $DIR_SOURCES/class.DBConnectionLite.php __tmp__.php
 sed -i "1s/.*/\/\*\*\//" __tmp__.php
-sed -i -e "/class\.DBConnection\.php/{r __tmp__.php"  -e 'd}' $DIR_DEST/$FILE_DEST
+sed -i -e "/class\.DBConnectionLite\.php/{r __tmp__.php"  -e 'd}' $DIR_DEST/$FILE_DEST
 
 echo 'Incapsulating class.SitemapFileSaver.php'
 cp $DIR_SOURCES/class.SitemapFileSaver.php __tmp__.php

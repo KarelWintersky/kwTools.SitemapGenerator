@@ -6,7 +6,7 @@
  * Date: 15.03.2018, time: 1:04
  */
 require_once 'class.INI_Config.php';
-require_once 'class.DBConnection.php';
+require_once 'class.DBConnectionLite.php';
 require_once 'class.CLIConsole.php';
 
 function at($array, $key, $default_value = NULL) { return (array_key_exists($key, $array)) ? $array[$key] : $default_value; }
@@ -53,7 +53,7 @@ MSG_DBSECTION_NOTFOUND;
         die(2);
     }
 
-    $dbi = new DBConnection($DB_SETTINGS);
+    $dbi = new DBConnectionLite($DB_SETTINGS);
     if (!$dbi->is_connected) die($dbi->error_message);
 }
 

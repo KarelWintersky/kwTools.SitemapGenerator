@@ -2,9 +2,12 @@
 /**
  * User: Karel Wintersky
  * Date: 14.03.2018, time: 22:40
+ * Date: 14.05.2019, time: 16:00
  */
+const KWT_SITEMAPGEN_VERSION = '1.5.3';
+
 require_once 'class.INI_Config.php';
-require_once 'class.DBConnection.php';
+require_once 'class.DBConnectionLite.php';
 require_once 'class.CLIConsole.php';
 require_once 'class.SitemapFileSaver.php';
 
@@ -18,7 +21,7 @@ $this_filename = basename($argv[0]); // get file basename
 $welcome_message = <<<SMG_WELCOME
 
 <font color="white">{$this_filename}</font> is a <strong>Karel Wintersky's Configurable Sitemap Generator</strong> with .ini-files as configs
-© Karel Wintersky, 2018, <font color="dgray">https://github.com/KarelWintersky/kwTools.SitemapGenerator</font>
+© Karel Wintersky, 2019, <font color="dgray">https://github.com/KarelWintersky/kwTools.SitemapGenerator</font>
 
 SMG_WELCOME;
 
@@ -77,7 +80,7 @@ MSG_DBSECTION_NOTFOUND;
         die(2);
     }
 
-    $dbi = new DBConnection($DB_SETTINGS);
+    $dbi = new DBConnectionLite($DB_SETTINGS);
     if (!$dbi->is_connected) die($dbi->error_message);
 }
 

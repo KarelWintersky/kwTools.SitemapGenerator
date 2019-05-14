@@ -172,7 +172,7 @@ class INI_Config
  *
  * Date: 15.03.2018, time: 0:31
  */
-class DBConnection extends \PDO
+class DBConnectionLite extends \PDO
 {
     private $database_settings = array();
     private $pdo_connection;
@@ -180,6 +180,10 @@ class DBConnection extends \PDO
     public  $is_connected = FALSE;
     public  $error_message = '';
 
+    /**
+     * DBConnection constructor.
+     * @param $db_settings
+     */
     public function __construct($db_settings)
     {
         $database_settings = $db_settings;
@@ -192,6 +196,8 @@ class DBConnection extends \PDO
         $dbuser = $database_settings['username'];
         $dbpass = $database_settings['password'];
         $dbport = $database_settings['port'];
+
+
 
         $dsl = "mysql:host=$dbhost;port=$dbport;dbname=$dbname";
 
@@ -437,7 +443,7 @@ MSG_DBSECTION_NOTFOUND;
         die(2);
     }
 
-    $dbi = new DBConnection($DB_SETTINGS);
+    $dbi = new DBConnectionLite($DB_SETTINGS);
     if (!$dbi->is_connected) die($dbi->error_message);
 }
 
