@@ -5,7 +5,7 @@
  * Date: 14.03.2018, time: 22:40
  * Date: 14.05.2019, time: 16:00
  */
-const KWT_SITEMAPGEN_VERSION = '1.5.3';
+const KWT_SITEMAPGEN_VERSION = '1.5.5';
 
 /**/
 
@@ -607,7 +607,7 @@ class SitemapFileSaver {
         // смотри https://github.com/KarelWintersky/kwSiteMapGen/issues/1 )
 
 		$this->buffer = $this->xmlw->flush(true);
-		$this->buffer_size = count($this->buffer);
+		$this->buffer_size = strlen($this->buffer);
 
 		// увеличиваем на 1 номер текущего файла сайтмапа со ссылками
 		$this->sm_currentfile_number++;
@@ -628,7 +628,7 @@ class SitemapFileSaver {
 		$this->xmlw->fullEndElement();
 		$this->xmlw->endDocument();
 		$this->buffer .= $this->xmlw->flush(true);
-		$this->buffer_size += strlen($this->buffer);
+		$this->buffer_size = strlen($this->buffer);
 
 		$filename = $this->sm_name . $this->sm_separator . $this->sm_currentfile_number;
 
@@ -666,7 +666,7 @@ class SitemapFileSaver {
 	 */
 	public function push($location, $lastmod = NULL)
 	{
-		$DEBUG = FALSE;
+		$DEBUG = false;
 
 		// проверяем, начат ли (открыт ли на запись) новый файл? Если нет - создаём новый файл.
 		if (! $this->xmlw instanceof XMLWriter) {
@@ -683,6 +683,8 @@ class SitemapFileSaver {
 		)
 		{
 			if ($DEBUG) var_dump("Started new iteration, STOP() + START()");
+            if ($DEBUG) var_dump($this->buffer_size);
+            if ($DEBUG) var_dump($this->sm_currentfile_links_count);
 			$this->stop();
 			$this->start();
 		}
@@ -719,7 +721,7 @@ class SitemapFileSaver {
 		$this->xmlw->endElement();
 
 		$this->buffer .= $this->xmlw->flush(true);
-		$this->buffer_size += strlen($this->buffer);
+		$this->buffer_size = strlen($this->buffer);
 	}
 
 

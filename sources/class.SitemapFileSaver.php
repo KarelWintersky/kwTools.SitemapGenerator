@@ -227,7 +227,7 @@ class SitemapFileSaver {
 		$this->xmlw->fullEndElement();
 		$this->xmlw->endDocument();
 		$this->buffer .= $this->xmlw->flush(true);
-		$this->buffer_size += strlen($this->buffer);
+		$this->buffer_size = strlen($this->buffer);
 
 		$filename = $this->sm_name . $this->sm_separator . $this->sm_currentfile_number;
 
@@ -265,7 +265,7 @@ class SitemapFileSaver {
 	 */
 	public function push($location, $lastmod = NULL)
 	{
-		$DEBUG = FALSE;
+		$DEBUG = false;
 
 		// проверяем, начат ли (открыт ли на запись) новый файл? Если нет - создаём новый файл.
 		if (! $this->xmlw instanceof XMLWriter) {
@@ -282,6 +282,8 @@ class SitemapFileSaver {
 		)
 		{
 			if ($DEBUG) var_dump("Started new iteration, STOP() + START()");
+            if ($DEBUG) var_dump($this->buffer_size);
+            if ($DEBUG) var_dump($this->sm_currentfile_links_count);
 			$this->stop();
 			$this->start();
 		}
@@ -318,7 +320,7 @@ class SitemapFileSaver {
 		$this->xmlw->endElement();
 
 		$this->buffer .= $this->xmlw->flush(true);
-		$this->buffer_size += strlen($this->buffer);
+		$this->buffer_size = strlen($this->buffer);
 	}
 
 
