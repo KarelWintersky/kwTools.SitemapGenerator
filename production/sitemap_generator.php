@@ -1,11 +1,12 @@
 #!/usr/bin/php
+#!/usr/bin/php
 <?php
 /**
  * User: Karel Wintersky
  * Date: 14.03.2018, time: 22:40
  * Date: 14.05.2019, time: 16:00
  */
-const KWT_SITEMAPGEN_VERSION = '1.5.5';
+const KWT_SITEMAPGEN_VERSION = '1.6';
 
 /**/
 
@@ -401,6 +402,51 @@ class CLIConsole
 
 /**/
 
+class SiteMapMessages
+{
+    const MESSAGES = [
+        'welcome_message' => '
+<font color="white">%s</font> is a <strong>Karel Wintersky\'s Configurable Sitemap Generator</strong> with .ini-files as configs
+© Karel Wintersky, 2019, <font color="dgray">https://github.com/KarelWintersky/kwTools.SitemapGenerator</font> ',
+
+        'hint_message'  => '
+<font color="red">missing config file</font><br>
+<font color="white">Use: </font> %1$s <font color="yellow">/path/to/sitemap-config.ini</font>
+or
+<font color="white">Use: </font> %1$s --help
+',
+
+        'MSG_DBSUFFIX_EMPTY'    =>  '
+<font color=\'yellow\'>[WARNING]</font> Key <font color=\'cyan\'>___GLOBAL_SETTINGS___/db_section_suffix </font> is <strong>EMPTY</strong> in file <font color=\'yellow\'>%1$s</font><br>
+Database connection can\'t be established.<br>
+Any sections with <strong>source=\'sql\'</strong> will be skipped.<br>
+<br>
+        ',
+
+        'MSG_DBSECTION_NOTFOUND' => '
+<font color=\'lred\'>[ERROR]</font> : Config section <font color=\'cyan\'>[___GLOBAL_SETTINGS:%1$s___]</font> not found in file <font color=\'yellow\'>%2$s</font><br>
+See <font color="green">https://github.com/KarelWintersky/kwTools.SitemapGenerator</font> for assistance. <br>
+        
+        ',
+
+    ];
+
+    public static function say($message_id = "", ...$args)
+    {
+        $string = array_key_exists($message_id, self::MESSAGES) ? self::MESSAGES[$message_id] : $message_id;
+
+        $string =
+            (func_num_args() > 1)
+            ? vsprintf($string, $args)
+            : $string;
+
+        CLIConsole::echo_status( $string );
+    }
+
+}
+/* end class.SitemapMessages.php */
+/**/
+
 /**
  * Class SitemapFileSaver
  */
@@ -790,6 +836,11 @@ class SitemapFileSaver {
 } // end class
 
 /* end class.SitemapFileSaver.php */
+function at($array, $key, $default_value = NULL)
+{
+    return (array_key_exists($key, $array)) ? $array[$key] : $default_value;
+}
+
 // check SAPI status: script can be launched only from console
 if (php_sapi_name() !== "cli") {
     die("KW's Sitemap Generator can't be launched in browser.");
@@ -797,29 +848,10 @@ if (php_sapi_name() !== "cli") {
 
 $this_filename = basename($argv[0]); // get file basename
 
-$welcome_message = <<<SMG_WELCOME
-
-<font color="white">{$this_filename}</font> is a <strong>Karel Wintersky's Configurable Sitemap Generator</strong> with .ini-files as configs
-© Karel Wintersky, 2019, <font color="dgray">https://github.com/KarelWintersky/kwTools.SitemapGenerator</font>
-
-SMG_WELCOME;
-
-$hint_message = <<<SMG_USAGE
-
-{$this_filename}: <font color="red">missing config file</font><br>
-<font color="white">Use: </font> {$this_filename} <font color="yellow">/path/to/sitemap-config.ini</font>
-or
-<font color="white">Use: </font> {$this_filename} --help
-
-SMG_USAGE;
-
-function at($array, $key, $default_value = NULL) { return (array_key_exists($key, $array)) ? $array[$key] : $default_value; }
-
-CLIConsole::echo_status($welcome_message);
-
-// аргумент --help выводит справку
+// отсутствие аргументов или аргумент `--help` выводит справку:
 if (($argc == 1) || (strtolower($argv[1]) === '--help')) {
-    CLIConsole::echo_status($hint_message);
+    SiteMapMessages::say('welcome_message', $this_filename, $this_filename);
+    SiteMapMessages::say('hint_message', $this_filename, $this_filename);
     die;
 }
 
@@ -837,25 +869,13 @@ if ($db_section_suffix === '') {
     // опция - пустая строчка
     $dbi = NULL;
 
-    $error_message = <<<MSG_DBSUFFIX_EMPTY
-<font color='yellow'>[WARNING]</font> Key <font color='cyan'>___GLOBAL_SETTINGS___/db_section_suffix </font> is <strong>EMPTY</strong> in file <font color='yellow'>{$argv_config_filepath}</font><br>
-Database connection can't be established.<br>
-Any sections with <strong>source='sql'</strong> will be skipped.<br>
-<br>
+    SiteMapMessages::say('MSG_DBSUFFIX_EMPTY', $argv_config_filepath);
 
-MSG_DBSUFFIX_EMPTY;
-
-    CLIConsole::echo_status($error_message);
 } else {
     $DB_SETTINGS = $sm_config->get("___GLOBAL_SETTINGS:{$db_section_suffix}___");
 
     if ($DB_SETTINGS === NULL) {
-        $error_message = <<<MSG_DBSECTION_NOTFOUND
-<font color='lred'>[ERROR]</font> : Config section <font color='cyan'>[___GLOBAL_SETTINGS:{$db_section_suffix}___]</font> not found in file <font color='yellow'>{$argv_config_filepath}</font><br>
-See <font color="green">https://github.com/KarelWintersky/kwTools.SitemapGenerator</font> for assistance. <br>
-MSG_DBSECTION_NOTFOUND;
-
-        CLIConsole::echo_status($error_message);
+        SiteMapMessages::say('MSG_DBSECTION_NOTFOUND', $db_section_suffix, $argv_config_filepath);
         die(2);
     }
 
@@ -873,16 +893,16 @@ $sm_config->delete("___GLOBAL_SETTINGS:{$db_section_suffix}___");
 
 $all_sections = $sm_config->getAll();
 
-$index_of_sitemap_files = array();
+$index_of_sitemap_files = [];
 
-if ($IS_LOGGING) CLIConsole::echo_status("<strong>Generating sitemap</strong> based on <font color='yellow'>{$argv_config_filepath}</font>" . PHP_EOL);
+if ($IS_LOGGING) SiteMapMessages::say("<strong>Generating sitemap</strong> based on <font color='yellow'>{$argv_config_filepath}</font>" . PHP_EOL);
 
 // iterate all sections
 $stat_total_time = microtime(true);
 foreach ($all_sections as $section_name => $section_config) {
     if (array_key_exists('enabled', $section_config) && $section_config['enabled'] == 0) continue;
 
-    if ($IS_LOGGING) CLIConsole::echo_status("<font color='yellow'>[{$section_name}]</font>");
+    if ($IS_LOGGING) SiteMapMessages::say("<font color='yellow'>[{$section_name}]</font>");
 
     // init values based on section config
     $url_priority   = at($section_config, 'url_priority', 0.5);
@@ -904,7 +924,7 @@ foreach ($all_sections as $section_name => $section_config) {
     switch ($section_config['source']) {
         case 'sql': {
             if ($dbi === NULL) {
-                CLIConsole::echo_status("Нельзя использовать секцию с источником данных SQL - отсутствует подключение к БД");
+                SiteMapMessages::say("Нельзя использовать секцию с источником данных SQL - отсутствует подключение к БД");
                 unset($store);
                 continue; // next section
             }
@@ -941,7 +961,7 @@ foreach ($all_sections as $section_name => $section_config) {
                 };
                 array_walk($chunk_data, $sql_pusher);
 
-                if ($IS_LOGGING) CLIConsole::echo_status("+ Generated sitemap URLs from offset " . str_pad($offset, 7, ' ', STR_PAD_LEFT) . " and count " . str_pad($count, 7, ' ', STR_PAD_LEFT) . ". Consumed time: " . round(microtime(true) - $t, 2) .  " sec.");
+                if ($IS_LOGGING) SiteMapMessages::say("+ Generated sitemap URLs from offset " . str_pad($offset, 7, ' ', STR_PAD_LEFT) . " and count " . str_pad($count, 7, ' ', STR_PAD_LEFT) . ". Consumed time: " . round(microtime(true) - $t, 2) .  " sec.");
                 $t = microtime(true);
 
                 $offset += $limit_urls;
@@ -963,8 +983,8 @@ foreach ($all_sections as $section_name => $section_config) {
             }
 
             if (!file_exists($path_to_file)) {
-                CLIConsole::echo_status("<font color='lred'>[ERROR]</font> File {$path_to_file} declared in section {$section_name}, option [filename] : not found!");
-                CLIConsole::echo_status("<font color='lred'>This section will be ignored!</font>");
+                SiteMapMessages::say("<font color='lred'>[ERROR]</font> File {$path_to_file} declared in section {$section_name}, option [filename] : not found!");
+                SiteMapMessages::say("<font color='lred'>This section will be ignored!</font>");
                 unset($store);
                 continue;
             }
@@ -991,7 +1011,7 @@ foreach ($all_sections as $section_name => $section_config) {
 
             $store->stop();
 
-            if ($IS_LOGGING) CLIConsole::echo_status("+ Generated " . str_pad($count, 7, ' ', STR_PAD_LEFT) . "  sitemap URLs. Consumed time: " . round(microtime(true) - $t, 2) . " sec.");
+            if ($IS_LOGGING) SiteMapMessages::say("+ Generated " . str_pad($count, 7, ' ', STR_PAD_LEFT) . "  sitemap URLs. Consumed time: " . round(microtime(true) - $t, 2) . " sec.");
             $t = microtime(true);
 
             // save sitemap files list to index array
@@ -1009,7 +1029,7 @@ foreach ($all_sections as $section_name => $section_config) {
         } // end of 'csv' case
 
         default: {
-            if ($IS_LOGGING) CLIConsole::echo_status("<font color='lred'>[ERROR]</font> Unknown source type for section {$section_name}");
+            if ($IS_LOGGING) SiteMapMessages::say("<font color='lred'>[ERROR]</font> Unknown source type for section {$section_name}");
             break;
         } // end of DEFAULT case
 
@@ -1019,10 +1039,10 @@ foreach ($all_sections as $section_name => $section_config) {
     $store = null;
     unset($store);
 
-    echo PHP_EOL;
+    if ($IS_LOGGING) SiteMapMessages::say();
 } // end of foreach section
 
-if ($IS_LOGGING) CLIConsole::echo_status("<font color='yellow'>[sitemap.xml]</font>") ;
+if ($IS_LOGGING) SiteMapMessages::say("<font color='yellow'>[sitemap.xml]</font>") ;
 
 SitemapFileSaver::createSitemapIndex(
     $GLOBAL_SETTINGS['sitemaps_href'],
@@ -1030,13 +1050,12 @@ SitemapFileSaver::createSitemapIndex(
     $index_of_sitemap_files,
     'Today'
 );
-if ($IS_LOGGING) CLIConsole::echo_status("+ Generated sitemap index." . PHP_EOL);
+if ($IS_LOGGING) SiteMapMessages::say("+ Generated sitemap index." . PHP_EOL);
 
 $dbi = null;
 
-if ($IS_LOGGING) CLIConsole::echo_status("<strong>Finished.</strong>" . PHP_EOL);
-if ($IS_LOGGING) CLIConsole::echo_status('Total spent time:  <strong>' . round( microtime(true) - $stat_total_time, 2) . '</strong> seconds. ');
-if ($IS_LOGGING) CLIConsole::echo_status('Peak memory usage: <strong>' . (memory_get_peak_usage(true) >> 10) . '</strong> Kbytes. ' . PHP_EOL);
-
+if ($IS_LOGGING) SiteMapMessages::say("<strong>Finished.</strong>" . PHP_EOL);
+if ($IS_LOGGING) SiteMapMessages::say('Total spent time:  <strong>' . round( microtime(true) - $stat_total_time, 2) . '</strong> seconds. ');
+if ($IS_LOGGING) SiteMapMessages::say('Peak memory usage: <strong>' . (memory_get_peak_usage(true) >> 10) . '</strong> Kbytes. ' . PHP_EOL);
 
 /* EOF */

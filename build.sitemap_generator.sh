@@ -25,6 +25,11 @@ cp $DIR_SOURCES/class.DBConnectionLite.php __tmp__.php
 sed -i "1s/.*/\/\*\*\//" __tmp__.php
 sed -i -e "/class\.DBConnectionLite\.php/{r __tmp__.php"  -e 'd}' $DIR_DEST/$FILE_DEST
 
+echo 'Incapsulating class.SitemapMessages.php'
+cp $DIR_SOURCES/class.SitemapMessages.php __tmp__.php
+sed -i "1s/.*/\/\*\*\//" __tmp__.php
+sed -i -e "/class\.SitemapMessages\.php/{r __tmp__.php"  -e 'd}' $DIR_DEST/$FILE_DEST
+
 echo 'Incapsulating class.SitemapFileSaver.php'
 cp $DIR_SOURCES/class.SitemapFileSaver.php __tmp__.php
 sed -i "1s/.*/\/\*\*\//" __tmp__.php
