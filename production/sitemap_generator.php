@@ -1,5 +1,4 @@
 #!/usr/bin/php
-#!/usr/bin/php
 <?php
 /**
  * User: Karel Wintersky
