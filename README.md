@@ -50,7 +50,7 @@ sitemap_generator.php --help
 ```
 CREATE USER 'sitemapcreator'@'localhost' IDENTIFIED BY 'sitemappassword';
 GRANT SELECT ON database.* TO `sitemapcreator`@`localhost`;
-FLUSH PRIVELEGES;
+FLUSH PRIVILEGES;
 ```
 
 Файл конфигурации состоит из как минимум трёх секций:
