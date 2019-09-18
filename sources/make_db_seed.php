@@ -5,6 +5,8 @@
  * User: Karel Wintersky
  * Date: 15.03.2018, time: 1:04
  */
+die('need refactoring, does not work!');
+
 require_once 'class.INI_Config.php';
 require_once 'class.DBConnectionLite.php';
 require_once 'class.CLIConsole.php';

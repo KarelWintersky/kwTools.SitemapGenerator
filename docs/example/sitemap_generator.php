@@ -2,247 +2,51 @@
 <?php
 /**
  * User: Karel Wintersky
- * Date: 14.03.2018, time: 22:40
- * Date: 14.05.2019, time: 16:00
+ * Date: 18.09.2019
  */
-const KWT_SITEMAPGEN_VERSION = '1.6';
+const KW_SITEMAPGEN_VERSION = '2.0';
 
 /**/
 
-/**
- * Class INI_Config, version 1.0.1
- */
-class INI_Config
+function at($array, $key, $default_value = NULL)
 {
-    const GLUE = '/';
-    private $config = array();
-
-    /**
-     * @param $filepath
-     * @param string $subpath
-     */
-    public function __construct($filepath, $subpath = '')
-    {
-        $this->init($filepath, $subpath);
-    }
-
-    /**
-     * @param $filepath
-     * @param string $subpath
-     */
-    public function init($filepath, $subpath = '')
-    {
-        if (file_exists($filepath)) {
-            $new_config = parse_ini_file($filepath, true);
-
-            if ($subpath == "" || $subpath == $this::GLUE) {
-                foreach ($new_config as $key => $part) {
-                    if (array_key_exists($key, $this->config)) {
-                        $this->config[$key] = array_merge($this->config[$key], $part);
-                    } else {
-                        $this->config[$key] = $part;
-                    }
-                }
-
-            } else {
-                $this->config["{$subpath}"] = $new_config;
-            }
-
-            unset($new_config);
-        } else {
-            $message = "<strong>FATAL ERROR:</strong> Config file `{$filepath}` not found. " . PHP_EOL;
-
-            if (function_exists('echo_status_cli')) {
-                echo_status_cli($message);
-                die(1);
-            } else {
-                if (php_sapi_name() === "cli") {
-                    $message = strip_tags($message);
-                }
-                die($message);
-            }
-        }
-    }
-
-    /**
-     * @param $filepath
-     * @param string $subpath
-     */
-    public function append($filepath, $subpath = '')
-    {
-        $this->init($filepath, $subpath);
-    }
-
-    /**
-     * @param $parents
-     * @param null $default_value
-     * @return array|null
-     */
-    public function get($parents, $default_value = NULL)
-    {
-        if ($parents === '') {
-            return $default_value;
-        }
-
-        if (!is_array($parents)) {
-            $parents = explode($this::GLUE, $parents);
-        }
-
-        $ref = &$this->config;
-
-        foreach ((array) $parents as $parent) {
-            if (is_array($ref) && array_key_exists($parent, $ref)) {
-                $ref = &$ref[$parent];
-            } else {
-                return $default_value;
-            }
-        }
-        return $ref;
-    }
-
-    /**
-     * @param $parents
-     * @param $value
-     * @return bool
-     */
-    public function set($parents, $value)
-    {
-        if (!is_array($parents)) {
-            $parents = explode($this::GLUE, (string) $parents);
-        }
-
-        if (empty($parents)) return false;
-
-        $ref = &$this->config;
-
-        foreach ($parents as $parent) {
-            if (isset($ref) && !is_array($ref)) {
-                $ref = array();
-            }
-
-            $ref = &$ref[$parent];
-        }
-
-        $ref = $value;
-        return true;
-    }
-
-    /**
-     * @param array $array
-     * @param array|string $parents
-     */
-    private function array_unset_value(&$array, $parents)
-    {
-        if (!is_array($parents)) {
-            $parents = explode($this::GLUE, $parents);
-        }
-
-        $key = array_shift($parents);
-
-        if (empty($parents)) {
-            unset($array[$key]);
-        } else {
-            $this->array_unset_value($array[$key], $parents);
-        }
-    }
-
-    /**
-     * @param $parents
-     */
-    public function delete($parents)
-    {
-        $this->array_unset_value($this->config, $parents);
-    }
-
-    /**
-     * @return array
-     */
-    public function getAll()
-    {
-        return $this->config;
-    }
-
+    return (array_key_exists($key, $array)) ? $array[$key] : $default_value;
 }
 
-/**/
-
 /**
- * User: Arris
  *
- * Class DBConnection
- *
- * Date: 15.03.2018, time: 0:31
+ * Class SitemapSystem
  */
-class DBConnectionLite extends \PDO
-{
-    private $database_settings = array();
-    private $pdo_connection;
-    private $table_prefix = '';
-    public  $is_connected = FALSE;
-    public  $error_message = '';
+class SitemapSystem {
+    /** Маркер склейки путей конфига */
+    const CONFIG_GLUE = '/';
 
-    /**
-     * DBConnection constructor.
-     * @param $db_settings
-     */
-    public function __construct($db_settings)
-    {
-        $database_settings = $db_settings;
+    /* Мессаги */
+    const MESSAGES = [
+        'only_cli'  =>  "Sitemap Generator can't be launched in browser.",
+        'welcome'   =>    '
+<font color="white">KWCSG</font> is a <strong>Karel Wintersky\'s Configurable Sitemap Generator</strong><br>
+It uses .ini files for configuration <br>
+See: https://github.com/KarelWintersky/kwTools.SitemapGenerator/blob/master/README.md
+or https://github.com/KarelWintersky/kwTools.SitemapGenerator/blob/master/README-EN.md
 
-        $this->table_prefix = $db_settings['table_prefix'] ?? '';
-        $this->database_settings = $database_settings;
+© Karel Wintersky, 2019, <font color="dgray">https://github.com/KarelWintersky/kwTools.SitemapGenerator</font><hr>',
 
-        $dbhost = $database_settings['hostname'];
-        $dbname = $database_settings['database'];
-        $dbuser = $database_settings['username'];
-        $dbpass = $database_settings['password'];
-        $dbport = $database_settings['port'];
+       'missing_config' =>  '<font color="red">missing config file</font>
+<font color="white">Use: </font> %1$s <font color="yellow">/path/to/sitemap-config.ini</font>
+or
+<font color="white">Use: </font> %1$s --help',
 
+        'missing_dbsuffix'  =>  '<font color="yellow">[WARNING]</font> Key <font color="cyan">___GLOBAL_SETTINGS___/db_section_suffix </font> is <strong>EMPTY</strong> in file <font color="yellow">%1$s</font>
+Database connection can\'t be established.
+Any sections with <strong>source=\'sql\'</strong> will be skipped.
+',
 
+        'missing_dbsection' =>  '<font color=\'lred\'>[ERROR]</font> : Config section <font color=\'cyan\'>[___GLOBAL_SETTINGS:%1$s___]</font> not found in file <font color=\'yellow\'>%2$s</font>
+See <font color=\'green\'>https://github.com/KarelWintersky/kwTools.SitemapGenerator</font> for assistance.
+'
 
-        $dsl = "mysql:host=$dbhost;port=$dbport;dbname=$dbname";
-
-        try {
-            $dbh = new \PDO($dsl, $dbuser, $dbpass);
-
-            $dbh->exec("SET NAMES utf8 COLLATE utf8_unicode_ci");
-            $dbh->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
-            $dbh->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC);
-
-            $this->pdo_connection = $dbh;
-        } catch (\PDOException $e) {
-            $this->error_message = "Database connection error!: " . $e->getMessage() . "<br/>";
-            $this->pdo_connection = null;
-            return false;
-        }
-
-        $this->is_connected = true;
-        return true;
-    }
-
-    /**
-     * @return null|PDO
-     */
-    public function getconnection()
-    {
-        return $this->pdo_connection;
-    }
-
-
-}
-
-/* end class.DBConnection.php *//**/
-
-/**
- * User: Arris
- *
- * Class CLIConsole
- *
- * Date: 14.03.2018, time: 22:11
- */
-class CLIConsole
-{
-    const VERSION = 1.4;
+    ];
 
     const FOREGROUND_COLORS = [
         'black'         => '0;30',
@@ -281,50 +85,241 @@ class CLIConsole
         'light gray'=> '47'
     ];
 
-    private static $echo_status_cli_flags = [
-        'strip_tags'        => false,
-        'decode_entities'   => false
-    ];
+    /**
+     * Конфиг
+     * @var array
+     */
+    private $config = [];
 
     /**
-     * ConsoleReadline::readline('Введите число от 1 до 999: ', '/^\d{1,3}$/');
-     * ConsoleReadline::readline('Введите число от 100 до 999: ', '/^\d{3}$/');
-     *
-     * @param $prompt -
-     * @param $allowed_pattern
-     * @param bool|FALSE $strict_mode
-     * @return bool|string
+     * Установки соединения с БД
+     * @var array
      */
-    public static function readline($prompt, $allowed_pattern = '/.*/', $strict_mode = FALSE)
+    private $database_settings = [];
+
+    /**
+     * Инстанс PDO для коннекта к БД
+     *
+     * @var \PDO
+     */
+    public $pdo_connection;
+
+    /**
+     * Префикс таблицы
+     * @var string
+     */
+    private $table_prefix = '';
+
+    /**
+     * @var bool|null
+     */
+    public  $is_db_connected = FALSE;
+
+    /**
+     * @var string
+     */
+    public  $error_message = '';
+
+    /**
+     * SitemapSystem constructor.
+     *
+     * NOWDOC/HEREDOC в определении значений массива у констант не работает, поэтому сообщения создаются динамически
+     *
+     * @param $config_file
+     * @throws Exception
+     */
+    public function __construct($config_file)
     {
-        if ($strict_mode) {
-            if ((substr($allowed_pattern, 0, 1) !== '/') || (substr($allowed_pattern, -1, 1) !== '/')) {
-                return FALSE;
-            }
-        } else {
-            if (substr($allowed_pattern, 0, 1) !== '/')
-                $allowed_pattern = '/' . $allowed_pattern;
-            if (substr($allowed_pattern, -1, 1) !== '/')
-                $allowed_pattern .= '/';
+        // загружаем конфиг
+        $this->config_load($config_file);
+
+        $GLOBAL_SETTINGS = $this->config_get_key('___GLOBAL_SETTINGS___');
+
+        $db_section_suffix = $this->config_get_key('___GLOBAL_SETTINGS___/db_section_suffix', '');
+
+        if (empty($db_section_suffix)) {
+            $this->is_db_connected = NULL;
+            $this->say_message('missing_dbsuffix', $config_file);
+            return;
         }
 
-        do {
-            $result = readline($prompt);
+        $DB_SETTINGS = $this->config_get_key("___GLOBAL_SETTINGS:{$db_section_suffix}___");
 
-        } while (preg_match($allowed_pattern, $result) !== 1);
-        return $result;
+        if ($DB_SETTINGS === NULL) {
+            $this->say_message('missing_dbsection', $db_section_suffix, $config_file);
+            die(2);
+        }
+
+        $this->initDBConnection($DB_SETTINGS);
     }
 
     /**
+     * Загружает конфиг из файла
+     *
+     * @param $config_file
+     * @param string $subpath
+     * @throws Exception
+     */
+    public function config_load($config_file, $subpath = '')
+    {
+        if (!file_exists($config_file))
+            throw new Exception("<strong>FATAL ERROR:</strong> Config file `{$config_file}` not found. ", 1 );
+
+        $new_config = parse_ini_file($config_file, true, INI_SCANNER_TYPED);
+
+        if (empty(trim($subpath, $this::CONFIG_GLUE))) {
+            foreach ($new_config as $key => $part) {
+                if (array_key_exists($key, $this->config)) {
+                    $this->config[$key] = array_merge($this->config[$key], $part);
+                } else {
+                    $this->config[$key] = $part;
+                }
+            }
+        } else {
+            $this->config[ "{$subpath}" ] = $new_config;
+        }
+
+        unset($new_config);
+    }
+
+    /**
+     * Возвращает значение конфига по ключу
+     *
+     * @param $parents
+     * @param null $default_value
+     * @return array|mixed|null
+     */
+    public function config_get_key($parents, $default_value = NULL)
+    {
+        if ($parents === '') {
+            return $default_value;
+        }
+
+        if (!is_array($parents)) {
+            $parents = explode($this::CONFIG_GLUE, $parents);
+        }
+
+        $ref = &$this->config;
+
+        foreach ((array) $parents as $parent) {
+            if (is_array($ref) && array_key_exists($parent, $ref)) {
+                $ref = &$ref[$parent];
+            } else {
+                return $default_value;
+            }
+        }
+        return $ref;
+    }
+
+    /**
+     * Возвращает все значения из конфига
+     * @return array
+     */
+    public function config_get_all()
+    {
+        return $this->config;
+    }
+
+    /**
+     * Удаляет ключ (с потомками) из конфига
+     * @param $parents
+     */
+    public function config_remove_key($parents)
+    {
+        $this->array_unset_value($this->config, $parents);
+    }
+
+    /**
+     *
+     */
+    public function config_remove_global_settings()
+    {
+        $db_section_suffix = $this->config_get_key('___GLOBAL_SETTINGS___/db_section_suffix', '');
+
+        $this->config_remove_key('___GLOBAL_SETTINGS___');
+        $this->config_remove_key('___GLOBAL_SETTINGS:DATABASE___');
+        $this->config_remove_key("___GLOBAL_SETTINGS:{$db_section_suffix}___");
+    }
+
+    /**
+     * служебная функция удаления
+     * @param $array
+     * @param $parents
+     */
+    private function array_unset_value(&$array, $parents)
+    {
+        if (!is_array($parents)) {
+            $parents = explode($this::CONFIG_GLUE, $parents);
+        }
+
+        $key = array_shift($parents);
+
+        if (empty($parents)) {
+            unset($array[$key]);
+        } else {
+            $this->array_unset_value($array[$key], $parents);
+        }
+    }
+
+    /**
+     * Печатает сообщение с анализом аргументов
+     *
+     * @param string $message_id
+     * @param mixed ...$args
+     */
+    public static function say_message($message_id = "", ...$args)
+    {
+        $string = array_key_exists($message_id, self::MESSAGES) ? self::MESSAGES[$message_id] : $message_id;
+
+        $string =
+            (func_num_args() > 1)
+                ? vsprintf($string, $args)
+                : $string;
+
+        self::say_cli( $string );
+    }
+
+    public function initDBConnection($database_settings)
+    {
+        $this->table_prefix = $db_settings['table_prefix'] ?? '';
+        $this->database_settings = $database_settings;
+
+        $dsl = "mysql:host={$database_settings['hostname']};port={$database_settings['port']};dbname={$database_settings['database']}";
+
+        $dbh = new \PDO($dsl, $database_settings['username'], $database_settings['password']);
+
+        $dbh->exec("SET NAMES utf8 COLLATE utf8_unicode_ci");
+        $dbh->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        $dbh->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC);
+
+        $this->pdo_connection = $dbh;
+
+        /*try {
+
+        } catch (\PDOException $e) {
+            $this->error_message = "Database connection error!: " . $e->getMessage() . "<br/>";
+            $this->pdo_connection = null;
+            return false;
+        }*/
+
+        $this->is_db_connected = true;
+
+        return true;
+    }
+
+    /**
+     * Equal to KarelWintersky\Arris\CLIConsole::echo_status()
+     *
      * Печатает в консоли цветное сообщение.
      * Допустимые форматтеры:
      * <font color=""> задает цвет из списка: black, dark gray, blue, light blue, green, lightgreen, cyan, light cyan, red, light red, purple, light purple, brown, yellow, light gray, gray
      * <hr> - горизонтальная черта, 80 минусов (работает только в отдельной строчке)
      * <strong> - заменяет белым цветом
+     *
      * @param string $message
-     * @param bool|TRUE $breakline
+     * @param bool $breakline
      */
-    public static function echo_status_cli($message = "", $breakline = TRUE)
+    public static function say_cli($message = "", $breakline = TRUE)
     {
         $fgcolors = self::FOREGROUND_COLORS;
 
@@ -356,94 +351,11 @@ class CLIConsole
             return "\033[{$color}m{$matches['Content']}\033[0m";
         }, $message);
 
-        // вырезает все лишние таги (если установлен флаг)
-        if (self::$echo_status_cli_flags['strip_tags'])
-            $message = strip_tags($message);
-
-        // преобразует html entity-сущности (если установлен флаг)
-        if (self::$echo_status_cli_flags['decode_entities'])
-            $message = htmlspecialchars_decode($message, ENT_QUOTES | ENT_HTML5);
-
         if ($breakline === TRUE) $message .= PHP_EOL;
         echo $message;
     }
 
-    /**
-     * Wrapper around echo/echo_status_cli
-     * Выводит сообщение на экран. Если мы вызваны из командной строки - заменяет теги на управляющие последовательности.
-     * @param $message
-     * @param bool|TRUE $breakline
-     */
-    public static function echo_status($message = "", $breakline = TRUE)
-    {
-        if (php_sapi_name() === "cli") {
-            self::echo_status_cli($message, $breakline);
-        } else {
-            if ($breakline === TRUE) $message .= PHP_EOL . "<br/>\r\n";
-            echo $message;
-        }
-    }
-
-    /**
-     * Устанавливает флаги обработки разных тегов в функции echo_status()
-     * @param bool|FALSE $will_strip - вырезать ли все лишние теги после обработки заменяемых?
-     * @param bool|FALSE $will_decode - преобразовывать ли html entities в их html-представление?
-     */
-    public static function echo_status_setmode($will_strip = FALSE, $will_decode = FALSE)
-    {
-        self::$echo_status_cli_flags = array(
-            'strip_tags'        => $will_strip,
-            'decode_entities'   => $will_decode
-        );
-    }
-
 }
-
-/**/
-
-class SiteMapMessages
-{
-    const MESSAGES = [
-        'welcome_message' => '
-<font color="white">%s</font> is a <strong>Karel Wintersky\'s Configurable Sitemap Generator</strong> with .ini-files as configs
-© Karel Wintersky, 2019, <font color="dgray">https://github.com/KarelWintersky/kwTools.SitemapGenerator</font> ',
-
-        'hint_message'  => '
-<font color="red">missing config file</font><br>
-<font color="white">Use: </font> %1$s <font color="yellow">/path/to/sitemap-config.ini</font>
-or
-<font color="white">Use: </font> %1$s --help
-',
-
-        'MSG_DBSUFFIX_EMPTY'    =>  '
-<font color=\'yellow\'>[WARNING]</font> Key <font color=\'cyan\'>___GLOBAL_SETTINGS___/db_section_suffix </font> is <strong>EMPTY</strong> in file <font color=\'yellow\'>%1$s</font><br>
-Database connection can\'t be established.<br>
-Any sections with <strong>source=\'sql\'</strong> will be skipped.<br>
-<br>
-        ',
-
-        'MSG_DBSECTION_NOTFOUND' => '
-<font color=\'lred\'>[ERROR]</font> : Config section <font color=\'cyan\'>[___GLOBAL_SETTINGS:%1$s___]</font> not found in file <font color=\'yellow\'>%2$s</font><br>
-See <font color="green">https://github.com/KarelWintersky/kwTools.SitemapGenerator</font> for assistance. <br>
-        
-        ',
-
-    ];
-
-    public static function say($message_id = "", ...$args)
-    {
-        $string = array_key_exists($message_id, self::MESSAGES) ? self::MESSAGES[$message_id] : $message_id;
-
-        $string =
-            (func_num_args() > 1)
-            ? vsprintf($string, $args)
-            : $string;
-
-        CLIConsole::echo_status( $string );
-    }
-
-}
-/* end class.SitemapMessages.php */
 /**/
 
 /**
@@ -835,73 +747,73 @@ class SitemapFileSaver {
 } // end class
 
 /* end class.SitemapFileSaver.php */
-function at($array, $key, $default_value = NULL)
-{
-    return (array_key_exists($key, $array)) ? $array[$key] : $default_value;
-}
-
 // check SAPI status: script can be launched only from console
 if (php_sapi_name() !== "cli") {
     die("KW's Sitemap Generator can't be launched in browser.");
 }
 
-$this_filename = basename($argv[0]); // get file basename
+$self_filename = basename($argv[0]); // get file basename
 
-// отсутствие аргументов или аргумент `--help` выводит справку:
-if (($argc == 1) || (strtolower($argv[1]) === '--help')) {
-    SiteMapMessages::say('welcome_message', $this_filename, $this_filename);
-    SiteMapMessages::say('hint_message', $this_filename, $this_filename);
+$cli_options = getopt('v::h::', ['verbose::', 'config:', 'help::'], $error_argument);
+
+if (empty($cli_options) || key_exists('help', $cli_options) || key_exists('h', $cli_options)) {
+    SitemapSystem::say_message('welcome', $self_filename);
+    SitemapSystem::say_message('missing_config', $self_filename);
+    die;
+}
+if (!key_exists('config', $cli_options) or empty($cli_options['config'])) {
+    SitemapSystem::say_message('missing_config', $self_filename);
     die;
 }
 
-// в противном случае ожидается, что в 1 аргументе передан инишник, а в нем ожидаются секции:
-$argv_config_filepath = $argv[1];
-$argv_config_path = dirname($argv_config_filepath);
+$argv_config_file = $cli_options['config'];
+$argv_config_path = dirname($argv_config_file);
 
-$sm_config = new INI_Config( $argv_config_filepath );
-$GLOBAL_SETTINGS = $sm_config->get('___GLOBAL_SETTINGS___');
+$sm_engine = new SitemapSystem($argv_config_file);
 
-// получим суффикс секции с данными подключения к БД
-$db_section_suffix = $sm_config->get('___GLOBAL_SETTINGS___/db_section_suffix', '');
+$GLOBAL_SETTINGS = $sm_engine->config_get_key('___GLOBAL_SETTINGS___');
 
-if ($db_section_suffix === '') {
-    // опция - пустая строчка
-    $dbi = NULL;
+$limit_urls  = $sm_engine->config_get_key('___GLOBAL_SETTINGS___/limit_urls', 50000);
+$limit_bytes = $sm_engine->config_get_key('___GLOBAL_SETTINGS___/limit_bytes', 50000000);
+$is_verbose_mode  = $sm_engine->config_get_key('___GLOBAL_SETTINGS___/logging', true) ||  key_exists('verbose', $cli_options);
+$global_include_root_page = $sm_engine->config_get_key('___GLOBAL_SETTINGS___/include_root_page', false);
 
-    SiteMapMessages::say('MSG_DBSUFFIX_EMPTY', $argv_config_filepath);
+$sm_engine->config_remove_global_settings();
 
-} else {
-    $DB_SETTINGS = $sm_config->get("___GLOBAL_SETTINGS:{$db_section_suffix}___");
-
-    if ($DB_SETTINGS === NULL) {
-        SiteMapMessages::say('MSG_DBSECTION_NOTFOUND', $db_section_suffix, $argv_config_filepath);
-        die(2);
-    }
-
-    $dbi = new DBConnectionLite($DB_SETTINGS);
-    if (!$dbi->is_connected) die($dbi->error_message);
-}
-
-$limit_urls  = at($GLOBAL_SETTINGS, 'limit_urls', 50000);
-$limit_bytes = at($GLOBAL_SETTINGS, 'limit_bytes', 50000000);
-$IS_LOGGING  = at($GLOBAL_SETTINGS, 'logging', TRUE);
-
-$sm_config->delete('___GLOBAL_SETTINGS___');
-$sm_config->delete('___GLOBAL_SETTINGS:DATABASE___');
-$sm_config->delete("___GLOBAL_SETTINGS:{$db_section_suffix}___");
-
-$all_sections = $sm_config->getAll();
+$all_sections = $sm_engine->config_get_all();
 
 $index_of_sitemap_files = [];
 
-if ($IS_LOGGING) SiteMapMessages::say("<strong>Generating sitemap</strong> based on <font color='yellow'>{$argv_config_filepath}</font>" . PHP_EOL);
+if ($is_verbose_mode) SitemapSystem::say_message("<strong>Generating sitemap</strong> based on <font color='yellow'>{$argv_config_file}</font>" . PHP_EOL);
+
+$stat_total_time = microtime(true);
+
+
+/**
+ * @todo: ВНЕСТИ В ДОКУМЕНТАЦИЮ
+ * Если в глобальном конфиге встречается опция "include_root_page", она обрабатывается так:
+ * 1 : создается секция __root__, на основе которой создается файл root.xml.gz с единственной строчкой к корню сайта
+ * 'строка': поведение аналогично, но создается файл с соотв. именем
+ * 0 : файл не создается. При этом к корню сайта не будет сайтмэпа, ЕСЛИ он не описан в секции, например "статических" страниц.
+ */
+
+if ( $global_include_root_page ) {
+    if (!is_string($global_include_root_page)) $global_include_root_page = 'root';
+
+    $all_sections[ "__{$global_include_root_page}__" ] = [
+        'enabled'       =>  1,
+        'source'        =>  'root',
+        'radical'       =>  $global_include_root_page,
+        'url_priority'  =>  1,
+        'url_changefreq'=>  'always'
+    ];
+}
 
 // iterate all sections
-$stat_total_time = microtime(true);
 foreach ($all_sections as $section_name => $section_config) {
     if (array_key_exists('enabled', $section_config) && $section_config['enabled'] == 0) continue;
 
-    if ($IS_LOGGING) SiteMapMessages::say("<font color='yellow'>[{$section_name}]</font>");
+    if ($is_verbose_mode) SitemapSystem::say_message("<font color='yellow'>[{$section_name}]</font>");
 
     // init values based on section config
     $url_priority   = at($section_config, 'url_priority', 0.5);
@@ -921,14 +833,15 @@ foreach ($all_sections as $section_name => $section_config) {
 
     // analyze source type in config section
     switch ($section_config['source']) {
+
         case 'sql': {
-            if ($dbi === NULL) {
-                SiteMapMessages::say("Нельзя использовать секцию с источником данных SQL - отсутствует подключение к БД");
+            if ($sm_engine->is_db_connected === false) {
+                SitemapSystem::say_message("Нельзя использовать секцию с источником данных SQL - отсутствует подключение к БД");
                 unset($store);
                 continue; // next section
             }
 
-            $sth = $dbi->getconnection()->query( $section_config['sql_count_request'] );
+            $sth = $sm_engine->pdo_connection->query( $section_config['sql_count_request'] );
             $sth_result = $sth->fetch();
             $url_count = $sth_result[ $section_config['sql_count_value'] ];
 
@@ -940,7 +853,7 @@ foreach ($all_sections as $section_name => $section_config) {
             // iterate all chunks
             for ($i = 0; $i < $chunks_count; $i++) {
                 $q_chunk = $section_config['sql_data_request'] . " LIMIT {$limit_urls} OFFSET {$offset} ";
-                $sth = $dbi->getconnection()->query( $q_chunk );
+                $sth = $sm_engine->pdo_connection->query( $q_chunk );
                 $chunk_data = $sth->fetchAll();
 
                 $count = 0;
@@ -960,7 +873,7 @@ foreach ($all_sections as $section_name => $section_config) {
                 };
                 array_walk($chunk_data, $sql_pusher);
 
-                if ($IS_LOGGING) SiteMapMessages::say("+ Generated sitemap URLs from offset " . str_pad($offset, 7, ' ', STR_PAD_LEFT) . " and count " . str_pad($count, 7, ' ', STR_PAD_LEFT) . ". Consumed time: " . round(microtime(true) - $t, 2) .  " sec.");
+                if ($is_verbose_mode) SitemapSystem::say_message("+ Generated sitemap URLs from offset " . str_pad($offset, 7, ' ', STR_PAD_LEFT) . " and count " . str_pad($count, 7, ' ', STR_PAD_LEFT) . ". Consumed time: " . round(microtime(true) - $t, 2) .  " sec.");
                 $t = microtime(true);
 
                 $offset += $limit_urls;
@@ -982,8 +895,8 @@ foreach ($all_sections as $section_name => $section_config) {
             }
 
             if (!file_exists($path_to_file)) {
-                SiteMapMessages::say("<font color='lred'>[ERROR]</font> File {$path_to_file} declared in section {$section_name}, option [filename] : not found!");
-                SiteMapMessages::say("<font color='lred'>This section will be ignored!</font>");
+                SitemapSystem::say_message("<font color='lred'>[ERROR]</font> File {$path_to_file} declared in section {$section_name}, option [filename] : not found!");
+                SitemapSystem::say_message("<font color='lred'>This section will be ignored!</font>");
                 unset($store);
                 continue;
             }
@@ -1002,6 +915,7 @@ foreach ($all_sections as $section_name => $section_config) {
              * @param $section_lastmod
              */
             $file_pusher = function($value, $index, $section_lastmod) use ($section_config, $store, &$count) {
+                if (trim($value) === '/') $value = '';
                 $location = sprintf( $section_config['url_location'], trim($value));
                 $store->push( $location, $section_lastmod );
                 $count++;
@@ -1010,7 +924,7 @@ foreach ($all_sections as $section_name => $section_config) {
 
             $store->stop();
 
-            if ($IS_LOGGING) SiteMapMessages::say("+ Generated " . str_pad($count, 7, ' ', STR_PAD_LEFT) . "  sitemap URLs. Consumed time: " . round(microtime(true) - $t, 2) . " sec.");
+            if ($is_verbose_mode) SitemapSystem::say_message("+ Generated " . str_pad($count, 7, ' ', STR_PAD_LEFT) . "  sitemap URLs. Consumed time: " . round(microtime(true) - $t, 2) . " sec.");
             $t = microtime(true);
 
             // save sitemap files list to index array
@@ -1018,6 +932,37 @@ foreach ($all_sections as $section_name => $section_config) {
 
             break;
         } // end of 'file' case
+
+        case 'root': {
+            $url_count = 1;
+
+            $section_lastmod
+                = !array_key_exists('lastmod', $section_config) || ($section_config['lastmod'] === 'NOW()')
+                ? time()
+                : null;
+
+            $count = 0;
+            $t = microtime(true);
+
+            /**
+             * Callback function
+             * @param $value
+             * @param $index
+             * @param $section_lastmod
+             */
+            $store->push( '', $section_lastmod );
+            $count++;
+
+            $store->stop();
+
+            if ($is_verbose_mode) SitemapSystem::say_message("+ Generated " . str_pad($count, 7, ' ', STR_PAD_LEFT) . "  sitemap URLs. Consumed time: " . round(microtime(true) - $t, 2) . " sec.");
+            $t = microtime(true);
+
+            // save sitemap files list to index array
+            $index_of_sitemap_files = array_merge($index_of_sitemap_files, $store->getIndex());
+
+            break;
+        }
 
         case 'csv': {
             // not implemented
@@ -1028,7 +973,7 @@ foreach ($all_sections as $section_name => $section_config) {
         } // end of 'csv' case
 
         default: {
-            if ($IS_LOGGING) SiteMapMessages::say("<font color='lred'>[ERROR]</font> Unknown source type for section {$section_name}");
+            if ($is_verbose_mode) SitemapSystem::say_message("<font color='lred'>[ERROR]</font> Unknown source type for section {$section_name}");
             break;
         } // end of DEFAULT case
 
@@ -1038,10 +983,16 @@ foreach ($all_sections as $section_name => $section_config) {
     $store = null;
     unset($store);
 
-    if ($IS_LOGGING) SiteMapMessages::say();
+    if ($is_verbose_mode) SitemapSystem::say_message();
 } // end of foreach section
 
-if ($IS_LOGGING) SiteMapMessages::say("<font color='yellow'>[sitemap.xml]</font>") ;
+/*
+ * @todo: добавить обработку $ ко второму параметру. Это означает, что sitemap.xml надо записывать в `sitemaps_storage`
+ * // smth like :
+  ( strpos($GLOBAL_SETTINGS['sitemaps_mainindex'], '$') !== FALSE )
+? str_replace('$', $GLOBAL_SETTINGS['sitemaps_storage'], $GLOBAL_SETTINGS['sitemaps_mainindex'])
+: $GLOBAL_SETTINGS['sitemaps_mainindex']
+*/
 
 SitemapFileSaver::createSitemapIndex(
     $GLOBAL_SETTINGS['sitemaps_href'],
@@ -1049,12 +1000,13 @@ SitemapFileSaver::createSitemapIndex(
     $index_of_sitemap_files,
     'Today'
 );
-if ($IS_LOGGING) SiteMapMessages::say("+ Generated sitemap index." . PHP_EOL);
+if ($is_verbose_mode) SitemapSystem::say_message("+ Generated sitemap index." . PHP_EOL);
 
-$dbi = null;
+$sm_engine->pdo_connection = null;
 
-if ($IS_LOGGING) SiteMapMessages::say("<strong>Finished.</strong>" . PHP_EOL);
-if ($IS_LOGGING) SiteMapMessages::say('Total spent time:  <strong>' . round( microtime(true) - $stat_total_time, 2) . '</strong> seconds. ');
-if ($IS_LOGGING) SiteMapMessages::say('Peak memory usage: <strong>' . (memory_get_peak_usage(true) >> 10) . '</strong> Kbytes. ' . PHP_EOL);
+if ($is_verbose_mode) SitemapSystem::say_message("<strong>Finished.</strong>" . PHP_EOL);
+if ($is_verbose_mode) SitemapSystem::say_message('Total spent time:  <strong>' . round( microtime(true) - $stat_total_time, 2) . '</strong> seconds. ');
+if ($is_verbose_mode) SitemapSystem::say_message('Peak memory usage: <strong>' . (memory_get_peak_usage(true) >> 10) . '</strong> Kbytes. ' . PHP_EOL);
 
 /* EOF */
+
