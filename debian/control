@@ -1,0 +1,13 @@
+Source: kwTools.SitemapGenerator
+Section: unknown
+Priority: optional
+Maintainer: Karel Wintersky <karel.wintersky@gmail.com>
+Build-Depends: debhelper (>= 9)
+Standards-Version: 3.9.8
+Vcs-Git: https://github.com/KarelWintersky/kwTools.SitemapGenerator
+
+Package: kwsitemapgenerator
+Architecture: all
+Depends: php-cli, php-common, php-curl, php-fpm, php-json, php-mbstring, php-mysql, php-mysqli, php-pdo, php-xml, php-zip, composer
+Description: kwTools SitemapGenerator
+ kwTools SitemapGenerator
