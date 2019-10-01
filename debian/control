@@ -8,6 +8,6 @@ Vcs-Git: https://github.com/KarelWintersky/kwTools.SitemapGenerator
 
 Package: kwsitemapgenerator
 Architecture: all
-Depends: php-cli, php-common, php-curl, php-fpm, php-json, php-mbstring, php-mysql, php-mysqli, php-pdo, php-xml, php-zip, composer
+Depends: php-cli, php-common, php-fpm, php-mbstring, php-pdo, php-xml, php-zip
 Description: kwTools SitemapGenerator
  kwTools SitemapGenerator
