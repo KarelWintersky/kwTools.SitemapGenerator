@@ -15,7 +15,7 @@ if (php_sapi_name() !== "cli") {
 
 $self_filename = basename($argv[0]); // get file basename
 
-$cli_options = getopt('v::h::', ['verbose::', 'config:', 'help::'], $error_argument);
+$cli_options = getopt('v::h::', ['verbose::', 'config:', 'help::']);
 
 if (empty($cli_options) || key_exists('help', $cli_options) || key_exists('h', $cli_options)) {
     SitemapSystem::say_message('welcome', $self_filename);

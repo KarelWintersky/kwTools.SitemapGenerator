@@ -1,3 +1,9 @@
+kwsitemapgenerator (2.0.7) stable; urgency=medium
+
+  * notices fixes
+
+ -- Karel Wintersky <karel.wintersky@gmail.com>  Tue, 01 Oct 2019 17:39:09 +0300
+
 kwsitemapgenerator (2.0.6) stable; urgency=medium
 
   * updated readme
