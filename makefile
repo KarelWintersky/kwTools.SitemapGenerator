@@ -11,6 +11,9 @@ DIR_PRODUCTION="$(PWD)/production"
 FILE_PRODUCTION_V1="$(DIR_PRODUCTION)/sitemap_generator_v1.php"
 FILE_PRODUCTION_V2="$(DIR_PRODUCTION)/sitemap_generator.php"
 
+PROJECT=kwsitemapgenerator
+VAR_ROOT=$(DESTDIR)
+
 help:
 	@perl -e '$(HELP_ACTION)' $(MAKEFILE_LIST)
 
@@ -79,11 +82,11 @@ build_generator:	##@build Cook v2 version
 
 install: build_generator	##system Install sitemap generator to /usr/local/bin, required sudo
 	@echo Placing file to /usr/local/bin/
-	@sudo cp --force ./production/sitemap_generator.php /usr/local/bin/sitemap_generator.php
+	@sudo cp --force ./production/sitemap_generator.php /usr/local/bin/sitemap_generator
 	@echo Setting executable attribute
-	@sudo chmod +x /usr/local/bin/sitemap_generator.php
+	@sudo chmod +x /usr/local/bin/sitemap_generator
 	@echo '---------------------------------------------------------------'
-	@sitemap_generator.php --help
+	@sitemap_generator --help
 
 build_seed:
 	@echo Building SEED SQL file for tests
