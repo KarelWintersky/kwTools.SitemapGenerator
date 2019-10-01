@@ -1,7 +1,17 @@
-.idea
+# exclude git
 .git
-.localfiles
-sources/config.db.ini
-sources/config.sitemap+db.ini
-tests/make_db_seed.ini
-production/config.sitemap+db.ini
+
+# exclude IDE files
+.idea
+
+# exclude temporary development files
+_todo/*
+
+# exclude build temporary files
+debian/kwsitemapgenerator/*
+
+# exclude environment-depend config
+sources/*.ini
+_temp/*
+production/*.ini
+

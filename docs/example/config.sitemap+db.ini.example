@@ -10,6 +10,7 @@ use_gzip = 1
 logging = 1
 date_format_type = 'iso8601'
 db_section_suffix = 'DATABASE'
+include_root_page = 1
 
 [___GLOBAL_SETTINGS:DATABASE___]
 driver   = 'mysql'
@@ -85,7 +86,7 @@ url_priority = '0.5'
 url_changefreq = 'daily'
 lastmod = 'NOW()'
 
-; статические страницы (пустая строчка в начале файла со списком страниц означает корень сайта)
+; статические страницы (пустая строчка или одинокий слэш в строке означает ссылку на корень сайта, перекрывается опцией `include_root_page = 1` в глобальной секции)
 [static]
 radical = 'static'
 source = 'file'
