@@ -1,0 +1,37 @@
+build_generator_legacy:	##@build cook legacy version
+    @echo 'Generating all-in-one V1 php-file'
+    @echo
+    
+    @echo '#!/usr/bin/php' > $(FILE_PRODUCTION_V1)
+    @cat $(DIR_SOURCES)/$(FILE_SOURCE_V1) >> $(FILE_PRODUCTION_V1)
+    
+    @echo 'Incapsulating class.CLIConsole.php'
+    @cp $(DIR_SOURCES)/class.CLIConsole.php __tmp__.php
+    @sed -i "1s/.*/\/\*\*\//" __tmp__.php
+    @sed -i -e "/class\.CLIConsole\.php/{r __tmp__.php"  -e ' d}' $(FILE_PRODUCTION_V1)
+    
+    @echo 'Incapsulating class.INI_Config.php'
+    @cp $(DIR_SOURCES)/class.INI_Config.php __tmp__.php
+    @sed -i "1s/.*/\/\*\*\//" __tmp__.php
+    @sed -i -e "/class\.INI_Config\.php/{r __tmp__.php"  -e 'd}' $(FILE_PRODUCTION_V1)
+    
+    @echo 'Incapsulating class.DBConnectionLite.php'
+    @cp $(DIR_SOURCES)/class.DBConnectionLite.php __tmp__.php
+    @sed -i "1s/.*/\/\*\*\//" __tmp__.php
+    @sed -i -e "/class\.DBConnectionLite\.php/{r __tmp__.php"  -e 'd}' $(FILE_PRODUCTION_V1)
+    
+    @echo 'Incapsulating class.SitemapMessages.php'
+    @cp $(DIR_SOURCES)/class.SitemapMessages.php __tmp__.php
+    @sed -i "1s/.*/\/\*\*\//" __tmp__.php
+    @sed -i -e "/class\.SitemapMessages\.php/{r __tmp__.php"  -e 'd}' $(FILE_PRODUCTION_V1)
+    
+    @echo 'Incapsulating class.SitemapFileSaver.php'
+    @cp $(DIR_SOURCES)/class.SitemapFileSaver.php __tmp__.php
+    @sed -i "1s/.*/\/\*\*\//" __tmp__.php
+    @sed -i -e "/class\.SitemapFileSaver\.php/{r __tmp__.php"  -e 'd}' $(FILE_PRODUCTION_V1)
+    
+    @rm -f __tmp__.php
+    
+    @echo 'Ok.'
+    @echo $(FILE_PRODUCTION_V1) GENERATED
+    @echo
