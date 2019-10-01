@@ -1,3 +1,12 @@
+kwsitemapgenerator (2.0.6) stable; urgency=medium
+
+  * updated readme
+  * some fixes, messages, code, etc
+  * added GPG public key
+  * `make build` build now only signed DEB package
+
+ -- Karel Wintersky <karel.wintersky@gmail.com>  Tue, 01 Oct 2019 17:39:09 +0300
+
 kwsitemapgenerator (2.0.3) stable; urgency=medium
 
   * complete build system

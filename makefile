@@ -19,7 +19,7 @@ update:		##@build Update project from GIT
 	@echo Updating project from GIT
 	git pull
 
-build_generator:	##@build Cook v2 version
+build_local:	##@build Cook v2 version
 	@echo 'Generating all-in-one php-file'
 	@echo '#!/usr/bin/php' > $(FILE_PRODUCTION)
 	@cat $(DIR_SOURCES)/$(FILE_SOURCE) >> $(FILE_PRODUCTION)
@@ -40,14 +40,14 @@ build_generator:	##@build Cook v2 version
 	@echo "$(FILE_PRODUCTION) Generated"
 	@echo
 
-install: build_generator	##system Install sitemap generator to /usr/local/bin, required sudo
+install: build_local	##system Install sitemap generator to /usr/local/bin, required sudo
 	install -d $(VAR_ROOT)
 	cp production/kwsitemapgenerator $(VAR_ROOT)/sitemapgenerator
 	chmod +x $(VAR_ROOT)/sitemapgenerator
 
 build:		##@build Build project to DEB Package
 	@echo Building project to DEB-package
-	dpkg-buildpackage -rfakeroot
+	dpkg-buildpackage -rfakeroot --build=binary
 
 build_seed:
 	@echo Building SEED SQL file for tests

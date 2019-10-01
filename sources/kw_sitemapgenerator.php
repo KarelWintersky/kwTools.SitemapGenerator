@@ -45,7 +45,7 @@ $all_sections = $sm_engine->config_get_all();
 
 $index_of_sitemap_files = [];
 
-if ($is_verbose_mode) SitemapSystem::say_message("<strong>Generating sitemap</strong> based on <font color='yellow'>{$argv_config_file}</font>" . PHP_EOL);
+if ($is_verbose_mode) SitemapSystem::say_message("<hr><strong>Generating sitemap</strong> based on <font color='yellow'>{$argv_config_file}</font>" . PHP_EOL);
 
 $stat_total_time = microtime(true);
 

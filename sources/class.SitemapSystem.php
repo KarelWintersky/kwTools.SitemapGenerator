@@ -25,7 +25,7 @@ or https://github.com/KarelWintersky/kwTools.SitemapGenerator/blob/master/README
 © Karel Wintersky, 2019, <font color="dgray">https://github.com/KarelWintersky/kwTools.SitemapGenerator</font><hr>',
 
        'missing_config' =>  '<font color="red">missing config file</font>
-<font color="white">Use: </font> %1$s <font color="yellow">/path/to/sitemap-config.ini</font>
+<font color="white">Use: </font> %1$s <font color="yellow">--config /path/to/sitemap-config.ini</font>
 or
 <font color="white">Use: </font> %1$s --help',
 
