@@ -3,7 +3,7 @@
  * User: Karel Wintersky
  * Date: 18.09.2019
  */
-const KW_SITEMAPGEN_VERSION = '2.0';
+const KWSMG_VERSION = '2.0.8';
 
 require_once 'class.SitemapSystem.php';
 require_once 'class.SitemapFileSaver.php';
@@ -48,15 +48,6 @@ $index_of_sitemap_files = [];
 if ($is_verbose_mode) SitemapSystem::say_message("<hr><strong>Generating sitemap</strong> based on <font color='yellow'>{$argv_config_file}</font>" . PHP_EOL);
 
 $stat_total_time = microtime(true);
-
-
-/**
- * @todo: ВНЕСТИ В ДОКУМЕНТАЦИЮ
- * Если в глобальном конфиге встречается опция "include_root_page", она обрабатывается так:
- * 1 : создается секция __root__, на основе которой создается файл root.xml.gz с единственной строчкой к корню сайта
- * 'строка': поведение аналогично, но создается файл с соотв. именем
- * 0/не существует : файл не создается. При этом к корню сайта не будет сайтмэпа, ЕСЛИ он не описан в секции, например "статических" страниц.
- */
 
 if ( $global_include_root_page ) {
     if (!is_string($global_include_root_page)) $global_include_root_page = 'root';

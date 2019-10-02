@@ -157,6 +157,9 @@ See <font color=\'green\'>https://github.com/KarelWintersky/kwTools.SitemapGener
         if (!file_exists($config_file))
             throw new Exception("<strong>FATAL ERROR:</strong> Config file `{$config_file}` not found. ", 1 );
 
+        if (!is_readable($config_file))
+            throw new Exception("<strong>FATAL ERROR:</strong> Config file `{$config_file}` not readable. ", 2 );
+
         $new_config = parse_ini_file($config_file, true, INI_SCANNER_TYPED);
 
         if (empty(trim($subpath, $this::CONFIG_GLUE))) {
