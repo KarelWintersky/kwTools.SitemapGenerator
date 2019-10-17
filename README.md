@@ -139,7 +139,7 @@ include_root_page = 1
 
 ```
 [___GLOBAL_SETTINGS:DATABASE___]
-; драйвер, в данный момент используется только значение mysql
+; драйвер, поддерживаются значения 'mysql', 'pgsql', 'sqlite'
 driver   = 'mysql'
 
 ; hostname для подключения (обычно localhost)
@@ -156,7 +156,15 @@ database = ''
 
 ; порт (для MySQL по умолчанию 3306), указывать обязательно
 port     = 3306
+
+; charset (необязательно, по умолчанию utf8)
+charset  = 'utf8'
+
+; character set collate (необязательно, по умолчанию utf8_unicode_ci)
+charset_collate = 'utf8_unicode_ci'
 ```
+
+При использовании драйвера `sqlite` обязателен единственный параметр `hostname = /path/to/database.sqlite`. 
 
 ### Секции настроек сайтмапа для страниц определенной категории
 

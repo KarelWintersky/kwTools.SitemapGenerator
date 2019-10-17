@@ -36,7 +36,8 @@ Any sections with <strong>source=\'sql\'</strong> will be skipped.
 
         'missing_dbsection' =>  '<font color=\'lred\'>[ERROR]</font> : Config section <font color=\'cyan\'>[___GLOBAL_SETTINGS:%1$s___]</font> not found in file <font color=\'yellow\'>%2$s</font>
 See <font color=\'green\'>https://github.com/KarelWintersky/kwTools.SitemapGenerator</font> for assistance.
-'
+',
+        'unknown_db_driver' =>  '<font color="red">[ERROR]</font> Unknown database driver: %1$s!'
 
     ];
 
@@ -276,26 +277,64 @@ See <font color=\'green\'>https://github.com/KarelWintersky/kwTools.SitemapGener
 
     public function initDBConnection($database_settings)
     {
-        $this->table_prefix = $db_settings['table_prefix'] ?? '';
         $this->database_settings = $database_settings;
 
-        $dsl = "mysql:host={$database_settings['hostname']};port={$database_settings['port']};dbname={$database_settings['database']}";
+        switch ($this->database_settings['driver']) {
+            case 'mysql': {
+                $dsl = sprintf("mysql:host=%s;port=%s;dbname=%s",
+                    $database_settings['hostname'],
+                    $database_settings['port'],
+                    $database_settings['database']);
+                $dbh = new \PDO($dsl, $database_settings['username'], $database_settings['password']);
 
-        $dbh = new \PDO($dsl, $database_settings['username'], $database_settings['password']);
+                break;
+            }
+            case 'pgsql': {
+                $dsl = sprintf("pgsql:host=%s;port=%d;dbname=%s;user=%s;password=%s",
+                    $database_settings['hostname'],
+                    $database_settings['port'],
+                    $database_settings['database'],
+                    $database_settings['username'],
+                    $database_settings['password']);
 
-        $dbh->exec("SET NAMES utf8 COLLATE utf8_unicode_ci");
+                $dbh = new \PDO($dsl);
+                break;
+            }
+            case 'sqlite': {
+                $dsl = sprintf("sqlite:%s", realpath($this->database_settings['hostname']));
+                $dbh = new \PDO($dsl);
+                break;
+            }
+            default: {
+                $this->say_message('unknown_db_driver', $this->database_settings['driver']);
+                die(2);
+                break;
+            }
+        } // switch
+
+        // default charset and collate is "SET NAMES utf8 COLLATE utf8_unicode_ci"
+        $this->database_settings['charset']
+            = array_key_exists('charset', $this->database_settings)
+            ? $this->database_settings['charset']
+            : 'utf8';
+
+        $this->database_settings['charset_collate']
+            = array_key_exists('charset_collate', $this->database_settings)
+            ? $this->database_settings['charset_collate']
+            : 'utf8_unicode_ci';
+
+        if ($this->database_settings['charset']) {
+            $dbh->exec("SET NAMES {$this->database_settings['charset']}");
+        }
+
+        if (isset($this->database_settings['charset_collate'])) {
+            $dbh->exec("SET COLLATE {$this->database_settings['charset_collate']}");
+        }
+
         $dbh->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
         $dbh->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC);
 
         $this->pdo_connection = $dbh;
-
-        /*try {
-
-        } catch (\PDOException $e) {
-            $this->error_message = "Database connection error!: " . $e->getMessage() . "<br/>";
-            $this->pdo_connection = null;
-            return false;
-        }*/
 
         $this->is_db_connected = true;
 
