@@ -1,8 +1,17 @@
-kwsitemapgenerator (2.1.1) UNRELEASED; urgency=medium
+kwsitemapgenerator (2.2.0) stable; urgency=medium
+
+  * removed deprecated code
+  * some fixes
+  * fixed "contunue 2" issue
+  * added sign key to makefile  
+
+ -- Karel Wintersky <karel.wintersky@gmail.com>  Sun, 17 May 2020 08:22:28 +0300
+
+kwsitemapgenerator (2.1.1) stable; urgency=medium
 
   * changelog fix
 
- -- Karel Wintersky <karel.wintersky@gmail.com>  Thu, 17 Oct 2019 18:39:39 +0300
+ -- Wombat <karel.wintersky@gmail.com>  Sun, 17 May 2020 06:45:24 +0300
 
 kwsitemapgenerator (2.1.0) stable; urgency=medium
 

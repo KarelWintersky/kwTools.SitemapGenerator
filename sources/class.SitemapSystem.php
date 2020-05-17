@@ -22,7 +22,7 @@ It uses .ini files for configuration <br>
 See: https://github.com/KarelWintersky/kwTools.SitemapGenerator/blob/master/README.md
 or https://github.com/KarelWintersky/kwTools.SitemapGenerator/blob/master/README-EN.md
 
-© Karel Wintersky, 2019, <font color="dgray">https://github.com/KarelWintersky/kwTools.SitemapGenerator</font><hr>',
+© Karel Wintersky, 2020, <font color="dgray">https://github.com/KarelWintersky/kwTools.SitemapGenerator</font><hr>',
 
        'missing_config' =>  '<font color="red">missing config file</font>
 <font color="white">Use: </font> %1$s <font color="yellow">--config /path/to/sitemap-config.ini</font>
@@ -85,23 +85,11 @@ See <font color=\'green\'>https://github.com/KarelWintersky/kwTools.SitemapGener
     private $config = [];
 
     /**
-     * Установки соединения с БД
-     * @var array
-     */
-    private $database_settings = [];
-
-    /**
      * Инстанс PDO для коннекта к БД
      *
      * @var \PDO
      */
     public $pdo_connection;
-
-    /**
-     * Префикс таблицы
-     * @var string
-     */
-    private $table_prefix = '';
 
     /**
      * @var bool|null
@@ -119,7 +107,6 @@ See <font color=\'green\'>https://github.com/KarelWintersky/kwTools.SitemapGener
      * NOWDOC/HEREDOC в определении значений массива у констант не работает, поэтому сообщения создаются динамически
      *
      * @param $config_file
-     * @throws Exception
      */
     public function __construct($config_file)
     {
@@ -132,14 +119,14 @@ See <font color=\'green\'>https://github.com/KarelWintersky/kwTools.SitemapGener
 
         if (empty($db_section_suffix)) {
             $this->is_db_connected = NULL;
-            $this->say_message('missing_dbsuffix', $config_file);
+            $this->say('missing_dbsuffix', $config_file);
             return;
         }
 
         $DB_SETTINGS = $this->config_get_key("___GLOBAL_SETTINGS:{$db_section_suffix}___");
 
         if ($DB_SETTINGS === NULL) {
-            $this->say_message('missing_dbsection', $db_section_suffix, $config_file);
+            $this->say('missing_dbsection', $db_section_suffix, $config_file);
             die(2);
         }
 
@@ -151,15 +138,18 @@ See <font color=\'green\'>https://github.com/KarelWintersky/kwTools.SitemapGener
      *
      * @param $config_file
      * @param string $subpath
-     * @throws Exception
      */
     public function config_load($config_file, $subpath = '')
     {
-        if (!file_exists($config_file))
-            throw new Exception("<strong>FATAL ERROR:</strong> Config file `{$config_file}` not found. ", 1 );
+        if (!file_exists($config_file)) {
+            self::say_cli("<strong>FATAL ERROR:</strong> Config file `{$config_file}` not found. ");
+            die(1);
+        }
 
-        if (!is_readable($config_file))
-            throw new Exception("<strong>FATAL ERROR:</strong> Config file `{$config_file}` not readable. ", 2 );
+        if (!is_readable($config_file)) {
+            self::say_cli("<strong>FATAL ERROR:</strong> Config file `{$config_file}` not readable. ");
+            die(2);
+        }
 
         $new_config = parse_ini_file($config_file, true, INI_SCANNER_TYPED);
 
@@ -225,9 +215,6 @@ See <font color=\'green\'>https://github.com/KarelWintersky/kwTools.SitemapGener
         $this->array_unset_value($this->config, $parents);
     }
 
-    /**
-     *
-     */
     public function config_remove_global_settings()
     {
         $db_section_suffix = $this->config_get_key('___GLOBAL_SETTINGS___/db_section_suffix', '');
@@ -263,7 +250,7 @@ See <font color=\'green\'>https://github.com/KarelWintersky/kwTools.SitemapGener
      * @param string $message_id
      * @param mixed ...$args
      */
-    public static function say_message($message_id = "", ...$args)
+    public static function say($message_id = "", ...$args)
     {
         $string = array_key_exists($message_id, self::MESSAGES) ? self::MESSAGES[$message_id] : $message_id;
 
@@ -277,66 +264,62 @@ See <font color=\'green\'>https://github.com/KarelWintersky/kwTools.SitemapGener
 
     public function initDBConnection($database_settings)
     {
-        $this->database_settings = $database_settings;
+        try {
+            switch ($database_settings['driver']) {
+                case 'mysql':
+                case 'mysqli':
+                case 'pdo': {
+                    $dsl = sprintf("mysql:host=%s;port=%s;dbname=%s",
+                        $database_settings['hostname'],
+                        $database_settings['port'],
+                        $database_settings['database']);
+                    $dbh = new \PDO($dsl, $database_settings['username'], $database_settings['password']);
+                    break;
+                }
+                case 'pgsql': {
+                    $dsl = sprintf("pgsql:host=%s;port=%d;dbname=%s;user=%s;password=%s",
+                        $database_settings['hostname'],
+                        $database_settings['port'],
+                        $database_settings['database'],
+                        $database_settings['username'],
+                        $database_settings['password']);
 
-        switch ($this->database_settings['driver']) {
-            case 'mysql': {
-                $dsl = sprintf("mysql:host=%s;port=%s;dbname=%s",
-                    $database_settings['hostname'],
-                    $database_settings['port'],
-                    $database_settings['database']);
-                $dbh = new \PDO($dsl, $database_settings['username'], $database_settings['password']);
+                    $dbh = new \PDO($dsl);
+                    break;
+                }
+                case 'sqlite': {
+                    $dsl = sprintf("sqlite:%s", realpath($database_settings['hostname']));
+                    $dbh = new \PDO($dsl);
+                    break;
+                }
+                default: {
+                    $this->say('unknown_db_driver', $database_settings['driver']);
+                    die(2);
+                    break;
+                }
+            } // switch
 
-                break;
+            // default charset and collate is "SET NAMES utf8 COLLATE utf8_unicode_ci"
+            $database_settings['charset'] = at($database_settings, 'charset', 'utf8');
+            $database_settings['charset_collate'] = at($database_settings, 'charset_collate', 'utf8_unicode_ci');
+
+            if ($database_settings['charset']) {
+                $dbh->exec("SET NAMES {$database_settings['charset']}");
             }
-            case 'pgsql': {
-                $dsl = sprintf("pgsql:host=%s;port=%d;dbname=%s;user=%s;password=%s",
-                    $database_settings['hostname'],
-                    $database_settings['port'],
-                    $database_settings['database'],
-                    $database_settings['username'],
-                    $database_settings['password']);
 
-                $dbh = new \PDO($dsl);
-                break;
+            if (isset($database_settings['charset_collate'])) {
+                $dbh->exec("SET COLLATE {$database_settings['charset_collate']}");
             }
-            case 'sqlite': {
-                $dsl = sprintf("sqlite:%s", realpath($this->database_settings['hostname']));
-                $dbh = new \PDO($dsl);
-                break;
-            }
-            default: {
-                $this->say_message('unknown_db_driver', $this->database_settings['driver']);
-                die(2);
-                break;
-            }
-        } // switch
+            $dbh->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+            $dbh->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC);
 
-        // default charset and collate is "SET NAMES utf8 COLLATE utf8_unicode_ci"
-        $this->database_settings['charset']
-            = array_key_exists('charset', $this->database_settings)
-            ? $this->database_settings['charset']
-            : 'utf8';
+            $this->pdo_connection = $dbh;
 
-        $this->database_settings['charset_collate']
-            = array_key_exists('charset_collate', $this->database_settings)
-            ? $this->database_settings['charset_collate']
-            : 'utf8_unicode_ci';
+            $this->is_db_connected = true;
 
-        if ($this->database_settings['charset']) {
-            $dbh->exec("SET NAMES {$this->database_settings['charset']}");
+        } catch (Exception $e) {
+            die($e->getMessage());
         }
-
-        if (isset($this->database_settings['charset_collate'])) {
-            $dbh->exec("SET COLLATE {$this->database_settings['charset_collate']}");
-        }
-
-        $dbh->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
-        $dbh->setAttribute(\PDO::ATTR_DEFAULT_FETCH_MODE, \PDO::FETCH_ASSOC);
-
-        $this->pdo_connection = $dbh;
-
-        $this->is_db_connected = true;
 
         return true;
     }

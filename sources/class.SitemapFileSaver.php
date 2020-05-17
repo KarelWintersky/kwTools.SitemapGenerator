@@ -24,21 +24,21 @@ class SitemapFileSaver {
      *
      * @var string
      */
-	private $sm_domain = ''; 
+	private $sm_domain;
 
     /**
      * корень имени файла карты (имя секции)
      *
      * @var string
      */
-	private $sm_name = '';
+	private $sm_name;
 
     /**
      * разделитель между корнем имени карты и номером
      *
      * @var string
      */
-	private $sm_separator = '-';
+	private $sm_separator;
 	
     /**
      * приоритет ссылки по умолчанию
@@ -59,14 +59,14 @@ class SitemapFileSaver {
      *
      * @var string
      */
-	private $sm_storage_path = '';
+	private $sm_storage_path;
 
     /**
      * использовать ли сжатие gzip
      *
      * @var bool|false
      */
-	private $sm_use_gzip = false;
+	private $sm_use_gzip;
 
     /**
      * номер текущего файла, содержащего ссылки. На старте - 0
@@ -119,14 +119,14 @@ class SitemapFileSaver {
      *
      * @var int
      */
-	private $max_buffer_size = 50 * 1000 * 1000;
+	private $max_buffer_size;
 
     /**
      * максимальное количество ссылок в файле
      *
      * @var int
      */
-	private $max_links_count = 50000;
+	private $max_links_count;
 
     /**
      * debug

@@ -172,7 +172,7 @@ class INI_Config
  *
  * Date: 15.03.2018, time: 0:31
  */
-class DBConnectionLite extends \PDO
+class DBConnectionLite
 {
     private $database_settings = array();
     private $pdo_connection;

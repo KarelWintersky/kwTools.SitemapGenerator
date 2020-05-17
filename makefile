@@ -46,11 +46,17 @@ install: build_local	##system Install sitemap generator to /usr/local/bin, requi
 	chmod +x $(VAR_ROOT)/sitemapgenerator
 
 build:		##@build Build project to DEB Package
-	@echo Building project to DEB-package
-	dpkg-buildpackage -rfakeroot --build=binary
+	@echo 'Building project to DEB-package'
+	export DEBFULLNAME="Karel Wintersky" && export DEBEMAIL="karel.wintersky@gmail.com" && dpkg-buildpackage -rfakeroot --build=binary --sign-key=5B880AAEA75CA9F4AC7FB42281C5D6EECDF77864
 
 build_seed:
 	@echo Building SEED SQL file for tests
+
+dch:
+	dch -M -i
+
+dchr:
+	dch -M --release --distribution stable
 
 # ------------------------------------------------
 # Add the following 'help' target to your makefile, add help text after each target name starting with '\#\#'
