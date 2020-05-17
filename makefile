@@ -49,6 +49,10 @@ build:		##@build Build project to DEB Package
 	@echo 'Building project to DEB-package'
 	export DEBFULLNAME="Karel Wintersky" && export DEBEMAIL="karel.wintersky@gmail.com" && dpkg-buildpackage -rfakeroot --build=binary --sign-key=5B880AAEA75CA9F4AC7FB42281C5D6EECDF77864
 
+build_unsigned: ##@build_unsigned Build unsigned DEB Package (for AJUR Repository)
+	@echo 'Building DEB-package for AJUR Repository'
+	dpkg-buildpackage -rfakeroot --build=binary --no-sign
+
 build_seed:
 	@echo Building SEED SQL file for tests
 

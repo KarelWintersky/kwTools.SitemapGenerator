@@ -1,0 +1,34 @@
+#!/bin/sh
+# postinst script for kwsitemapgenerator
+
+set -e
+ANSI_RED='\033[0;31m'
+ANSI_GREEN='\033[0;32m'
+ANSI_YELLOW='\033[1;33m'
+ANSI_RESET='\033[0m'
+
+case "$1" in
+    configure)
+        echo "------------------------------------------------------------------------------------------"
+        echo "${ANSI_YELLOW}KWCSG ${ANSI_RESET} is a Karel Wintersky's Configurable Sitemap Generator \n"
+        echo "This tool uses .ini files as configuration \n"
+        echo "See: https://github.com/KarelWintersky/kwTools.SitemapGenerator/blob/master/README.md "
+        echo "  or https://github.com/KarelWintersky/kwTools.SitemapGenerator/blob/master/README-EN.md \n"
+        echo "(c) Karel Wintersky <karel.wintersky@gmail.com>, 2018-2020 \n"
+        echo "Use:"
+        echo "    ${ANSI_GREEN}/usr/local/bin/sitemapgenerator --config /path/to/config.ini [--verbose] ${ANSI_RESET} \n"
+        echo "------------------------------------------------------------------------------------------"
+    ;;
+
+    abort-upgrade|abort-remove|abort-deconfigure)
+    ;;
+
+    *)
+        echo "postinst called with unknown argument \`$1'" >&2
+        exit 1
+    ;;
+esac
+
+#DEBHELPER#
+
+exit 0

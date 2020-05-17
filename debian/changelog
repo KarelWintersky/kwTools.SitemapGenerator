@@ -1,3 +1,10 @@
+kwsitemapgenerator (2.2.1) stable; urgency=medium
+
+  * + added postinst message about package
+  * + added `build_unsigned` recipe (build unsingned DEB package)
+
+ -- Karel Wintersky <karel.wintersky@gmail.com>  Sun, 17 May 2020 10:47:21 +0300
+
 kwsitemapgenerator (2.2.0) stable; urgency=medium
 
   * removed deprecated code

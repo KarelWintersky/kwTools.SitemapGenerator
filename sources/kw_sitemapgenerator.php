@@ -4,7 +4,7 @@
  * Date: 18.09.2019
  * Date: 17.05.2020
  */
-const KWSMG_VERSION = '2.2.0';
+const KWSMG_VERSION = '2.2.1';
 
 require_once 'class.SitemapSystem.php';
 require_once 'class.SitemapFileSaver.php';
