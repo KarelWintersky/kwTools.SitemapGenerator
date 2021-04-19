@@ -13,7 +13,7 @@ PHP 7.0+ (php-cli, php-pdo), MySQL
 ```
 git clone https://github.com/KarelWintersky/kwTools.SitemapGenerator.git
 make build_local
-sudo mv $(PWD)/production/kwsitemapgenerator /usr/local/bin/sitemapgenerator
+sudo mv $(PWD)/production/sitemapgenerator /usr/local/bin/sitemapgenerator
 sudo chmod +x /usr/local/bin/sitemapgenerator
 sitemapgenerator --help
 ```
@@ -181,7 +181,7 @@ charset_collate = 'utf8_unicode_ci'
 ; название секции
 [price]
 ; [ОБЯЗАТЕЛЬНАЯ ОПЦИЯ]
-; источник данных - sql, file, csv
+; источник данных - sql, file, root
 source = 'sql'
 
 ; [ОБЯЗАТЕЛЬНАЯ ОПЦИЯ]
@@ -230,6 +230,15 @@ radical = 'price'
 ; [НЕОБЯЗАТЕЛЬНАЯ ОПЦИЯ]
 ; использовать ли gzip-сжатие для файлов sitemap для данной секции. Перекрывает глобальное значение use_gzip
 use_gzip = 0
+
+; [НЕОБЯЗАТЕЛЬНАЯ ОПЦИЯ]
+; Директория, куда записываются файлы сайтмэпов этой секции. Перекрывает ___GLOBAL_SETTINGS___/sitemaps_storage
+sitemaps_storage = ''
+
+; [НЕОБЯЗАТЕЛЬНАЯ ОПЦИЯ]
+; URL сайта (домен, включая финальный слэш) для этой секции. Перекрывает ___GLOBAL_SETTINGS___/site_href
+site_href = ''
+
 ```
 
 ##### Важный момент №1 - Необычные запросы
@@ -343,4 +352,5 @@ enabled = 0
 
 # Лицензия
 
-Используйте где хотите и как хотите, но уведомите автора (т.е. меня). Форки, пулл-реквесты и переводы приветствуются.
+MIT
+

@@ -245,7 +245,7 @@ class SitemapFileSaver {
 		file_put_contents($this->sm_storage_path . $filename, $buffer);
 
 		// добавляем имя сгенерированного файла сайтмапа в индекс сайтмапов
-		array_push( $this->sm_files_index, $filename);
+		$this->sm_files_index[] = $filename;
 
 		$this->sm_currentfile_links_count = 0;
 

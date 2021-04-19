@@ -7,7 +7,7 @@ FILE_SOURCE="kw_sitemapgenerator.php"
 
 DIR_PRODUCTION=$(PWD)/production
 
-FILE_PRODUCTION="$(DIR_PRODUCTION)/kwsitemapgenerator"
+FILE_PRODUCTION="$(DIR_PRODUCTION)/sitemapgenerator"  # or kwsmg
 
 PROJECT=kwsitemapgenerator
 VAR_ROOT=$(DESTDIR)/usr/local/bin
@@ -42,7 +42,7 @@ build_local:	##@build Cook v2 version
 
 install: build_local	##system Install sitemap generator to /usr/local/bin, required sudo
 	install -d $(VAR_ROOT)
-	cp production/kwsitemapgenerator $(VAR_ROOT)/sitemapgenerator
+	cp $(FILE_PRODUCTION) $(VAR_ROOT)/sitemapgenerator
 	chmod +x $(VAR_ROOT)/sitemapgenerator
 
 build:		##@build Build project to DEB Package
