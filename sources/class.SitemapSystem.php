@@ -348,26 +348,26 @@ See <font color=\'green\'>https://github.com/KarelWintersky/kwTools.SitemapGener
 
         // replace <br>
         $pattern_br = '#(?<br>\<br\s?\/?\>)#U';
-        $message = preg_replace_callback($pattern_br, function ($matches) {
+        $message = preg_replace_callback($pattern_br, static function ($matches) {
             return PHP_EOL;
         }, $message);
 
         // replace <hr>
         $pattern_hr = '#(?<hr>\<hr\s?\/?\>)#U';
-        $message = preg_replace_callback($pattern_hr, function ($matches) {
+        $message = preg_replace_callback($pattern_hr, static function ($matches) {
             return PHP_EOL . str_repeat('-', 80) . PHP_EOL;
         }, $message);
 
         // replace <font>
         $pattern_font = '#(?<Full>\<font[\s]+color=[\\\'\"](?<Color>[\D]+)[\\\'\"]\>(?<Content>.*)\<\/font\>)#U';
-        $message = preg_replace_callback($pattern_font, function ($matches) use ($fgcolors) {
+        $message = preg_replace_callback($pattern_font, static function ($matches) use ($fgcolors) {
             $color = $fgcolors[$matches['Color']] ?? $fgcolors['white '];
             return "\033[{$color}m{$matches['Content']}\033[0m";
         }, $message);
 
         // replace <strong>
         $pattern_strong = '#(?<Full>\<strong\>(?<Content>.*)\<\/strong\>)#U';
-        $message = preg_replace_callback($pattern_strong, function ($matches) use ($fgcolors) {
+        $message = preg_replace_callback($pattern_strong, static function ($matches) use ($fgcolors) {
             $color = $fgcolors['white'];
             return "\033[{$color}m{$matches['Content']}\033[0m";
         }, $message);

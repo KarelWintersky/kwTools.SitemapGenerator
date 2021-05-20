@@ -4,6 +4,7 @@
  * Class SitemapFileSaver
  */
 class SitemapFileSaver {
+    
     const VERSION = '1.5.3';
 
     /**

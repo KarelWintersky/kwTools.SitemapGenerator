@@ -7,7 +7,7 @@ FILE_SOURCE="kw_sitemapgenerator.php"
 
 DIR_PRODUCTION=$(PWD)/production
 
-FILE_PRODUCTION="$(DIR_PRODUCTION)/sitemapgenerator"  # or kwsmg
+FILE_PRODUCTION="$(DIR_PRODUCTION)/sitemapgenerator"
 
 PROJECT=kwsitemapgenerator
 VAR_ROOT=$(DESTDIR)/usr/local/bin
@@ -56,11 +56,20 @@ build_unsigned: ##@build_unsigned Build unsigned DEB Package (for AJUR Repositor
 build_seed:
 	@echo Building SEED SQL file for tests
 
-dch:
-	dch -M -i
+# ключ `--controlmaint` (сокр `-M`) в dch позволяет использовать для релизной подписи значение пол maintainer из debian/control (это может быть удобнее, чем указывать DEBEMAIL/DEBFULLNAME
 
-dchr:
-	dch -M --release --distribution stable
+dchv:		##@development Append release
+	@export DEBEMAIL="karel.wintersky@gmail.com" && \
+	export DEBFULLNAME="Karel Wintersky" && \
+	echo "$(YELLOW)------------------ Previous version header: ------------------$(GREEN)" && \
+	head -n 3 debian/changelog && \
+	echo "$(YELLOW)--------------------------------------------------------------$(RESET)" && \
+	read -p "Next version: " VERSION && \
+	dch -v $$VERSION
+
+dchr:		##@development Publish release
+	@dch --controlmaint --release --distribution stable
+
 
 # ------------------------------------------------
 # Add the following 'help' target to your makefile, add help text after each target name starting with '\#\#'

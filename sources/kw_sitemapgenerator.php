@@ -3,7 +3,8 @@
  * User: Karel Wintersky
  * Date: 18.09.2019
  * Date: 17.05.2020
- * Date: 19.04.2021 (2.3.0 version)
+ * Date: 19.04.2021 (2.2.3 version)
+ * Date: 20.05.2021 (2.3.0 version)
  */
 const KWSMG_VERSION = '2.3.0';
 
@@ -67,7 +68,8 @@ if ( $global_include_root_page ) {
 }
 
 // iterate all sections
-foreach ($all_sections as $section_name => $section_config) {
+foreach ($all_sections as $section_name => $section_config)
+{
     
     if (at($section_config, 'enabled', 0) == 0) continue; // iterate next section if 'enabled=0'
 
@@ -86,13 +88,42 @@ foreach ($all_sections as $section_name => $section_config) {
         $limit_bytes,
         $limit_urls,
         at($GLOBAL_SETTINGS, 'date_format_type', '') );
+    
+    /**
+     *  Означает паузу в мс между секциями. Если определено в секции - означает паузу, которая будет сделана после этой секции (а следующие будут иметь глобально определенную паузу или локально переопределенную)
+     */
+    $sleep_after_section = at(
+        $section_config,
+        'sleep_between_sections',
+        at(                             // по умолчанию - значение из глобальной секции
+            $GLOBAL_SETTINGS,
+            'sleep_between_sections',
+            0               // по умолчанию - 0
+        )
+    );
+    
+    /**
+     * Пауза между запросами к БД на выбору чанков (цепочек данных). Аналогично pause_after_section, только паузы внутри секции.
+     * Имеет смысл только для секции с источником данных SQL
+     *
+     * Определение: глобальное/локальное (аналогично pause_after_section)
+     */
+    $sleep_between_chunks = at(
+        $section_config,
+        'sleep_between_chunks',
+        at(                             // по умолчанию - значение из глобальной секции
+            $GLOBAL_SETTINGS,
+            'sleep_between_chunks',
+            0               // по умолчанию - 0
+        )
+    );
 
     // analyze source type in config section
     switch ($section_config['source']) {
 
         case 'sql': {
             if ($engine->is_db_connected === false) {
-                SitemapSystem::say("Нельзя использовать секцию с источником данных SQL - отсутствует подключение к БД");
+                SitemapSystem::say("Нельзя использовать секцию с источником данных SQL - отсутствует подключение к БД");  //@message: 'cant_use_sql_section_no_connection'
                 unset($store);
                 continue 2; // next section
             }
@@ -130,11 +161,21 @@ foreach ($all_sections as $section_name => $section_config) {
 
                 if ($is_verbose_mode) {
                     SitemapSystem::say( "+ Generated sitemap URLs from offset ".str_pad( $offset, 7, ' ', STR_PAD_LEFT )." and count ".str_pad( $count, 7, ' ', STR_PAD_LEFT ).". Consumed time: ".round( microtime( true ) - $t, 2 )." sec." );
+                    //@message: 'generated_sitemap_chunk'
                 }
                 $t = microtime(true);
 
                 $offset += $limit_urls;
                 unset($sth); // clear memory
+                
+                if ($is_verbose_mode) {
+                    if ($sleep_between_chunks != 0) {
+                        SitemapSystem::say("  ...Sleeping for {$sleep_between_chunks} ms.");
+                    }
+                }
+    
+                usleep($sleep_between_chunks * 1000);
+                
             } // for each chunk
             $store->stop();
 
@@ -215,11 +256,12 @@ foreach ($all_sections as $section_name => $section_config) {
             $store->stop();
 
             if ($is_verbose_mode) SitemapSystem::say("+ Generated " . str_pad($count, 7, ' ', STR_PAD_LEFT) . "  sitemap URLs. Consumed time: " . round(microtime(true) - $t, 2) . " sec.");
-            $t = microtime(true);
 
             // save sitemap files list to index array
             $index_of_sitemap_files = array_merge($index_of_sitemap_files, $store->getIndex());
-
+    
+            $t = microtime(true);
+            
             break;
         }
 
@@ -243,8 +285,16 @@ foreach ($all_sections as $section_name => $section_config) {
     // destruct SAVER instance
     $store = null;
     unset($store);
+    
+    if ($is_verbose_mode) {
+        if ($sleep_after_section != 0) {
+            SitemapSystem::say("  Sleeping for {$sleep_after_section} ms... ");
+        }
+        SitemapSystem::say();
+    }
 
-    if ($is_verbose_mode) SitemapSystem::say();
+    usleep($sleep_after_section * 1000);
+    
 } // end of foreach section
 
 /*
