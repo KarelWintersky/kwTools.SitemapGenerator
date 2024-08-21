@@ -145,22 +145,22 @@ class SitemapFileSaver {
 	 * @param string $separator		-- разделитель между именем карты и номером (-)
 	 * @param float $priority		-- приоритет по умолчанию (если NULL - атрибут не используется)
 	 * @param string $changefreq	-- частота обновления по умолчанию (если NULL - атрибут не используется)
-	 * @param bool|true $use_gzip	-- использовать ли сжатие gzip
+	 * @param bool|bool $use_gzip	-- использовать ли сжатие gzip
 	 * @param int $max_size			-- максимальный размер в байтах
 	 * @param int $max_links		-- максимальное количество ссылок в сайтмэпе
 	 * @param string $date_format_type -- тип формата даты (iso8601 или YMD)
 	 */
 	public function __construct(
-		$storage_path,
-		$domain,
-		$name,
-		$separator = '-',
-		$priority = 0.5,
-		$changefreq = 'never',
-		$use_gzip = true,
-		$max_size = 50000000,
-		$max_links = 50000,
-		$date_format_type = 'iso8601'
+        string $storage_path,
+        string $domain,
+        string $name,
+        string $separator = '-',
+        float  $priority = 0.5,
+        string $changefreq = 'never',
+        bool   $use_gzip = true,
+        int    $max_size = 50000000,
+        int    $max_links = 50000,
+        string $date_format_type = 'iso8601'
 	)
 	{
 		$this->sm_storage_path = $storage_path;

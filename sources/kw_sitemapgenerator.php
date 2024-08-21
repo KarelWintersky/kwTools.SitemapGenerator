@@ -6,7 +6,7 @@
  * Date: 19.04.2021 (2.2.3 version)
  * Date: 20.05.2021 (2.3.0 version)
  */
-const KWSMG_VERSION = '2.3.0';
+const KWSMG_VERSION = '2.3.1';
 
 require_once 'class.SitemapSystem.php';
 require_once 'class.SitemapFileSaver.php';
@@ -71,7 +71,9 @@ if ( $global_include_root_page ) {
 foreach ($all_sections as $section_name => $section_config)
 {
     
-    if (at($section_config, 'enabled', 0) == 0) continue; // iterate next section if 'enabled=0'
+    if (at($section_config, 'enabled', 0) == 0) {
+        continue;
+    } // iterate next section if 'enabled=0'
 
     if ($is_verbose_mode) {
         SitemapSystem::say( "<font color='yellow'>[{$section_name}]</font>" );

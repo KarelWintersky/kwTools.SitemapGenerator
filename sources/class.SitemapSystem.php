@@ -2,7 +2,7 @@
 
 function at($array, $key, $default_value = NULL)
 {
-    return (array_key_exists($key, $array)) ? $array[$key] : $default_value;
+    return array_key_exists($key, $array) ? $array[$key] : $default_value;
 }
 
 /**
