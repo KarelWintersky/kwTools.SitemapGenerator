@@ -7,7 +7,7 @@ FILE_SOURCE="kw_sitemapgenerator.php"
 
 DIR_PRODUCTION=$(PWD)/production
 
-FILE_PRODUCTION="$(DIR_PRODUCTION)/kwsitemapgenerator"
+FILE_PRODUCTION="$(DIR_PRODUCTION)/sitemapgenerator"
 
 PROJECT=kwsitemapgenerator
 VAR_ROOT=$(DESTDIR)/usr/local/bin
@@ -20,16 +20,17 @@ update:		##@build Update project from GIT
 	git pull
 
 build_local:	##@build Cook v2 version
+	@mkdir -p $(DIR_PRODUCTION)
 	@echo 'Generating all-in-one php-file'
 	@echo '#!/usr/bin/php' > $(FILE_PRODUCTION)
 	@cat $(DIR_SOURCES)/$(FILE_SOURCE) >> $(FILE_PRODUCTION)
 
-	@echo 'Incapsulating class.SitemapSystem.php'
+	@echo 'Encapsulating class.SitemapSystem.php'
 	@cp $(DIR_SOURCES)/class.SitemapSystem.php __tmp__.php
 	@sed -i "1s/.*/\/\*\*\//" __tmp__.php
 	@sed -i -e "/class\.SitemapSystem\.php/{r __tmp__.php"  -e 'd}' $(FILE_PRODUCTION)
 
-	@echo 'Incapsulating class.SitemapFileSaver.php'
+	@echo 'Encapsulating class.SitemapFileSaver.php'
 	@cp $(DIR_SOURCES)/class.SitemapFileSaver.php __tmp__.php
 	@sed -i "1s/.*/\/\*\*\//" __tmp__.php
 	@sed -i -e "/class\.SitemapFileSaver\.php/{r __tmp__.php"  -e 'd}' $(FILE_PRODUCTION)
@@ -42,12 +43,12 @@ build_local:	##@build Cook v2 version
 
 install: build_local	##system Install sitemap generator to /usr/local/bin, required sudo
 	install -d $(VAR_ROOT)
-	cp production/kwsitemapgenerator $(VAR_ROOT)/sitemapgenerator
+	cp $(FILE_PRODUCTION) $(VAR_ROOT)/sitemapgenerator
 	chmod +x $(VAR_ROOT)/sitemapgenerator
 
 build:		##@build Build project to DEB Package
 	@echo 'Building project to DEB-package'
-	export DEBFULLNAME="Karel Wintersky" && export DEBEMAIL="karel.wintersky@gmail.com" && dpkg-buildpackage -rfakeroot --build=binary --sign-key=5B880AAEA75CA9F4AC7FB42281C5D6EECDF77864
+	export DEBFULLNAME="Karel Wintersky" && export DEBEMAIL="karel.wintersky@yandex.ru" && dpkg-buildpackage -rfakeroot --build=binary --sign-key=5B880AAEA75CA9F4AC7FB42281C5D6EECDF77864
 
 build_unsigned: ##@build_unsigned Build unsigned DEB Package (for AJUR Repository)
 	@echo 'Building DEB-package for AJUR Repository'
@@ -56,11 +57,20 @@ build_unsigned: ##@build_unsigned Build unsigned DEB Package (for AJUR Repositor
 build_seed:
 	@echo Building SEED SQL file for tests
 
-dch:
-	dch -M -i
+# ключ `--controlmaint` (сокр `-M`) в dch позволяет использовать для релизной подписи значение пол maintainer из debian/control (это может быть удобнее, чем указывать DEBEMAIL/DEBFULLNAME
 
-dchr:
-	dch -M --release --distribution stable
+dchv:		##@development Append release
+	@export DEBEMAIL="karel.wintersky@yandex.ru" && \
+	export DEBFULLNAME="Karel Wintersky" && \
+	echo "$(YELLOW)------------------ Previous version header: ------------------$(GREEN)" && \
+	head -n 3 debian/changelog && \
+	echo "$(YELLOW)--------------------------------------------------------------$(RESET)" && \
+	read -p "Next version: " VERSION && \
+	dch -v $$VERSION
+
+dchr:		##@development Publish release
+	@dch --controlmaint --release --distribution stable
+
 
 # ------------------------------------------------
 # Add the following 'help' target to your makefile, add help text after each target name starting with '\#\#'

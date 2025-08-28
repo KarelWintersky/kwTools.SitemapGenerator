@@ -1,3 +1,24 @@
+kwsitemapgenerator (2.3.0) stable; urgency=medium
+
+  * [+] Добавлена обработка глобальных (секционно-переопределяемых) опций `sleep_between_sections` и `sleep_between_chunks`
+  * [+] Запланированы опции `DATABASE/after_connection_command` и `locale`
+  * [*] обновлен makefile (команды dchv, dchr)
+
+ -- Karel Wintersky <karel.wintersky@gmail.com>  Thu, 20 May 2021 10:48:31 +0300
+
+kwsitemapgenerator (2.2.2) stable; urgency=medium
+
+  * [*] message fixes
+  * [*] code fixes (removed pre PHP 7.0 code)
+  * [*] beautify code
+  * [*] some closures declared as static
+  * [+] внутри секции допустимо указать перекрывающие опции `sitemaps_storage` и `site_href` (аналогичен `sitehref` из глобальной секции)
+  * [+] файл лицензии
+  * [*] исправлен makefile
+  * [*] обновлен README
+
+ -- Karel Wintersky <karel.wintersky@gmail.com>  Mon, 19 Apr 2021 12:20:41 +0300
+
 kwsitemapgenerator (2.2.1) stable; urgency=medium
 
   * + added postinst message about package

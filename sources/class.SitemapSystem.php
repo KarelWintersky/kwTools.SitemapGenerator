@@ -2,7 +2,7 @@
 
 function at($array, $key, $default_value = NULL)
 {
-    return (array_key_exists($key, $array)) ? $array[$key] : $default_value;
+    return array_key_exists($key, $array) ? $array[$key] : $default_value;
 }
 
 /**
@@ -27,7 +27,8 @@ or https://github.com/KarelWintersky/kwTools.SitemapGenerator/blob/master/README
        'missing_config' =>  '<font color="red">missing config file</font>
 <font color="white">Use: </font> %1$s <font color="yellow">--config /path/to/sitemap-config.ini</font>
 or
-<font color="white">Use: </font> %1$s --help',
+<font color="white">Use: </font> %1$s --help<hr>
+',
 
         'missing_dbsuffix'  =>  '<font color="yellow">[WARNING]</font> Key <font color="cyan">___GLOBAL_SETTINGS___/db_section_suffix </font> is <strong>EMPTY</strong> in file <font color="yellow">%1$s</font>
 Database connection can\'t be established.
@@ -119,14 +120,14 @@ See <font color=\'green\'>https://github.com/KarelWintersky/kwTools.SitemapGener
 
         if (empty($db_section_suffix)) {
             $this->is_db_connected = NULL;
-            $this->say('missing_dbsuffix', $config_file);
+            self::say('missing_dbsuffix', $config_file);
             return;
         }
 
         $DB_SETTINGS = $this->config_get_key("___GLOBAL_SETTINGS:{$db_section_suffix}___");
 
         if ($DB_SETTINGS === NULL) {
-            $this->say('missing_dbsection', $db_section_suffix, $config_file);
+            self::say('missing_dbsection', $db_section_suffix, $config_file);
             die(2);
         }
 
@@ -223,6 +224,11 @@ See <font color=\'green\'>https://github.com/KarelWintersky/kwTools.SitemapGener
         $this->config_remove_key('___GLOBAL_SETTINGS:DATABASE___');
         $this->config_remove_key("___GLOBAL_SETTINGS:{$db_section_suffix}___");
     }
+    
+    public function validateGlobalSection()
+    {
+    
+    }
 
     /**
      * служебная функция удаления
@@ -293,7 +299,7 @@ See <font color=\'green\'>https://github.com/KarelWintersky/kwTools.SitemapGener
                     break;
                 }
                 default: {
-                    $this->say('unknown_db_driver', $database_settings['driver']);
+                    self::say('unknown_db_driver', $database_settings['driver']);
                     die(2);
                     break;
                 }
@@ -325,7 +331,7 @@ See <font color=\'green\'>https://github.com/KarelWintersky/kwTools.SitemapGener
     }
 
     /**
-     * Equal to KarelWintersky\Arris\CLIConsole::echo_status()
+     * Equal to KarelWintersky\Arris\CLIConsole::say()
      *
      * Печатает в консоли цветное сообщение.
      * Допустимые форматтеры:
@@ -342,28 +348,26 @@ See <font color=\'green\'>https://github.com/KarelWintersky/kwTools.SitemapGener
 
         // replace <br>
         $pattern_br = '#(?<br>\<br\s?\/?\>)#U';
-        $message = preg_replace_callback($pattern_br, function ($matches) {
+        $message = preg_replace_callback($pattern_br, static function ($matches) {
             return PHP_EOL;
         }, $message);
 
         // replace <hr>
         $pattern_hr = '#(?<hr>\<hr\s?\/?\>)#U';
-        $message = preg_replace_callback($pattern_hr, function ($matches) {
+        $message = preg_replace_callback($pattern_hr, static function ($matches) {
             return PHP_EOL . str_repeat('-', 80) . PHP_EOL;
         }, $message);
 
         // replace <font>
         $pattern_font = '#(?<Full>\<font[\s]+color=[\\\'\"](?<Color>[\D]+)[\\\'\"]\>(?<Content>.*)\<\/font\>)#U';
-        $message = preg_replace_callback($pattern_font, function ($matches) use ($fgcolors) {
-            $color = (PHP_VERSION_ID < 70000)
-                ? isset($fgcolors[$matches['Color']]) ? $fgcolors[$matches['Color']] : $fgcolors['white']    // php below 7.0
-                : $fgcolors[$matches['Color']] ?? $fgcolors['white '];                                           // php 7.0+
+        $message = preg_replace_callback($pattern_font, static function ($matches) use ($fgcolors) {
+            $color = $fgcolors[$matches['Color']] ?? $fgcolors['white '];
             return "\033[{$color}m{$matches['Content']}\033[0m";
         }, $message);
 
         // replace <strong>
         $pattern_strong = '#(?<Full>\<strong\>(?<Content>.*)\<\/strong\>)#U';
-        $message = preg_replace_callback($pattern_strong, function ($matches) use ($fgcolors) {
+        $message = preg_replace_callback($pattern_strong, static function ($matches) use ($fgcolors) {
             $color = $fgcolors['white'];
             return "\033[{$color}m{$matches['Content']}\033[0m";
         }, $message);
@@ -373,3 +377,5 @@ See <font color=\'green\'>https://github.com/KarelWintersky/kwTools.SitemapGener
     }
 
 }
+
+# -eof-

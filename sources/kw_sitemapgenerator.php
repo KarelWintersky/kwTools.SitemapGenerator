@@ -3,14 +3,16 @@
  * User: Karel Wintersky
  * Date: 18.09.2019
  * Date: 17.05.2020
+ * Date: 19.04.2021 (2.2.3 version)
+ * Date: 20.05.2021 (2.3.0 version)
  */
-const KWSMG_VERSION = '2.2.1';
+const KWSMG_VERSION = '2.3.1';
 
 require_once 'class.SitemapSystem.php';
 require_once 'class.SitemapFileSaver.php';
 
 // check SAPI status: script can be launched only from console
-if (php_sapi_name() !== "cli") {
+if (PHP_SAPI !== "cli") {
     die("KW's Sitemap Generator can't be launched in browser.");
 }
 
@@ -18,12 +20,12 @@ $self_filename = basename($argv[0]); // get file basename
 
 $cli_options = getopt('v::h::', ['verbose::', 'config:', 'help::']);
 
-if (empty($cli_options) || key_exists('help', $cli_options) || key_exists('h', $cli_options)) {
+if (empty($cli_options) || array_key_exists('help', $cli_options) || array_key_exists('h', $cli_options)) {
     SitemapSystem::say('welcome', $self_filename);
     SitemapSystem::say('missing_config', $self_filename);
     die;
 }
-if (!key_exists('config', $cli_options) or empty($cli_options['config'])) {
+if (!array_key_exists('config', $cli_options) or empty($cli_options['config'])) {
     SitemapSystem::say('missing_config', $self_filename);
     die;
 }
@@ -36,8 +38,9 @@ $engine = new SitemapSystem($argv_config_file);
 $GLOBAL_SETTINGS = $engine->config_get_key('___GLOBAL_SETTINGS___');
 
 $limit_urls  = $engine->config_get_key('___GLOBAL_SETTINGS___/limit_urls', 50000);
-$limit_bytes = $engine->config_get_key('___GLOBAL_SETTINGS___/limit_bytes', 50000000);
-$is_verbose_mode  = $engine->config_get_key('___GLOBAL_SETTINGS___/logging', true) ||  key_exists('verbose', $cli_options);
+$limit_bytes = $engine->config_get_key('___GLOBAL_SETTINGS___/limit_bytes', 50 * 1000 * 1000);
+
+$is_verbose_mode  = $engine->config_get_key('___GLOBAL_SETTINGS___/logging', true) ||  array_key_exists('verbose', $cli_options);
 $global_include_root_page = $engine->config_get_key('___GLOBAL_SETTINGS___/include_root_page', false);
 
 $engine->config_remove_global_settings();
@@ -46,7 +49,9 @@ $all_sections = $engine->config_get_all();
 
 $index_of_sitemap_files = [];
 
-if ($is_verbose_mode) SitemapSystem::say("<hr><strong>Generating sitemap</strong> based on <font color='yellow'>{$argv_config_file}</font>" . PHP_EOL);
+if ($is_verbose_mode) {
+    SitemapSystem::say( "<hr><strong>Generating sitemap</strong> based on <font color='yellow'>{$argv_config_file}</font>".PHP_EOL );
+}
 
 $stat_total_time = microtime(true);
 
@@ -63,33 +68,64 @@ if ( $global_include_root_page ) {
 }
 
 // iterate all sections
-foreach ($all_sections as $section_name => $section_config) {
-    if (at($section_config, 'enabled', 0) == 0) continue;
+foreach ($all_sections as $section_name => $section_config)
+{
+    
+    if (at($section_config, 'enabled', 0) == 0) {
+        continue;
+    } // iterate next section if 'enabled=0'
 
-    if ($is_verbose_mode) SitemapSystem::say("<font color='yellow'>[{$section_name}]</font>");
-
-    // init values based on section config
-    $url_priority   = at($section_config, 'url_priority', 0.5);
-    $url_changefreq = at($section_config, 'url_changefreq', 'never');
+    if ($is_verbose_mode) {
+        SitemapSystem::say( "<font color='yellow'>[{$section_name}]</font>" );
+    }
 
     $store = new SitemapFileSaver(
-        $GLOBAL_SETTINGS['sitemaps_storage'],
-        $GLOBAL_SETTINGS['sitehref'],
+        at($section_config, 'sitemaps_storage', $GLOBAL_SETTINGS['sitemaps_storage']),
+        at($section_config, 'site_href', $GLOBAL_SETTINGS['sitehref']),
         at($section_config, 'radical', $section_name),
         at($GLOBAL_SETTINGS, 'sitemaps_filename_separator', '-'),
-        $url_priority,
-        $url_changefreq,
+        at($section_config, 'url_priority', 0.5),
+        at($section_config, 'url_changefreq', 'never'),
         at($section_config, 'use_gzip', true) && at($GLOBAL_SETTINGS, 'use_gzip', true),
         $limit_bytes,
         $limit_urls,
         at($GLOBAL_SETTINGS, 'date_format_type', '') );
+    
+    /**
+     *  Означает паузу в мс между секциями. Если определено в секции - означает паузу, которая будет сделана после этой секции (а следующие будут иметь глобально определенную паузу или локально переопределенную)
+     */
+    $sleep_after_section = at(
+        $section_config,
+        'sleep_between_sections',
+        at(                             // по умолчанию - значение из глобальной секции
+            $GLOBAL_SETTINGS,
+            'sleep_between_sections',
+            0               // по умолчанию - 0
+        )
+    );
+    
+    /**
+     * Пауза между запросами к БД на выбору чанков (цепочек данных). Аналогично pause_after_section, только паузы внутри секции.
+     * Имеет смысл только для секции с источником данных SQL
+     *
+     * Определение: глобальное/локальное (аналогично pause_after_section)
+     */
+    $sleep_between_chunks = at(
+        $section_config,
+        'sleep_between_chunks',
+        at(                             // по умолчанию - значение из глобальной секции
+            $GLOBAL_SETTINGS,
+            'sleep_between_chunks',
+            0               // по умолчанию - 0
+        )
+    );
 
     // analyze source type in config section
     switch ($section_config['source']) {
 
         case 'sql': {
             if ($engine->is_db_connected === false) {
-                SitemapSystem::say("Нельзя использовать секцию с источником данных SQL - отсутствует подключение к БД");
+                SitemapSystem::say("Нельзя использовать секцию с источником данных SQL - отсутствует подключение к БД");  //@message: 'cant_use_sql_section_no_connection'
                 unset($store);
                 continue 2; // next section
             }
@@ -115,20 +151,33 @@ foreach ($all_sections as $section_name => $section_config) {
                  * Callback function
                  * @param $value
                  */
-                $sql_pusher = function($value) use ($section_config, $store, &$count) {
+                $sql_pusher = static function($value) use ($section_config, $store, &$count)
+                {
                     $id         = $value[ $section_config['sql_data_id'] ];
-                    $lastmod = ($section_config['sql_data_lastmod'] === 'NOW()') ? NULL : $value[ $section_config['sql_data_lastmod']];
+                    $lastmod    = $section_config['sql_data_lastmod'] === 'NOW()' ? NULL : $value[ $section_config['sql_data_lastmod'] ];
                     $location   = sprintf( $section_config['url_location'], $id);
                     $count++;
                     $store->push( $location, $lastmod );
                 };
                 array_walk($chunk_data, $sql_pusher);
 
-                if ($is_verbose_mode) SitemapSystem::say("+ Generated sitemap URLs from offset " . str_pad($offset, 7, ' ', STR_PAD_LEFT) . " and count " . str_pad($count, 7, ' ', STR_PAD_LEFT) . ". Consumed time: " . round(microtime(true) - $t, 2) .  " sec.");
+                if ($is_verbose_mode) {
+                    SitemapSystem::say( "+ Generated sitemap URLs from offset ".str_pad( $offset, 7, ' ', STR_PAD_LEFT )." and count ".str_pad( $count, 7, ' ', STR_PAD_LEFT ).". Consumed time: ".round( microtime( true ) - $t, 2 )." sec." );
+                    //@message: 'generated_sitemap_chunk'
+                }
                 $t = microtime(true);
 
                 $offset += $limit_urls;
                 unset($sth); // clear memory
+                
+                if ($is_verbose_mode) {
+                    if ($sleep_between_chunks != 0) {
+                        SitemapSystem::say("  ...Sleeping for {$sleep_between_chunks} ms.");
+                    }
+                }
+    
+                usleep($sleep_between_chunks * 1000);
+                
             } // for each chunk
             $store->stop();
 
@@ -165,9 +214,9 @@ foreach ($all_sections as $section_name => $section_config) {
              * @param $index
              * @param $section_lastmod
              */
-            $file_pusher = function($value, $index, $section_lastmod) use ($section_config, $store, &$count) {
+            $file_pusher = static function($value, $index, $section_lastmod) use ($section_config, $store, &$count) {
                 if (trim($value) === '/') $value = '';
-                $location = sprintf( $section_config['url_location'], trim($value));
+                $location = sprintf( $section_config['url_location'], trim($value) );
                 $store->push( $location, $section_lastmod );
                 $count++;
             };
@@ -175,7 +224,9 @@ foreach ($all_sections as $section_name => $section_config) {
 
             $store->stop();
 
-            if ($is_verbose_mode) SitemapSystem::say("+ Generated " . str_pad($count, 7, ' ', STR_PAD_LEFT) . "  sitemap URLs. Consumed time: " . round(microtime(true) - $t, 2) . " sec.");
+            if ($is_verbose_mode) {
+                SitemapSystem::say( "+ Generated ".str_pad( $count, 7, ' ', STR_PAD_LEFT )."  sitemap URLs. Consumed time: ".round( microtime( true ) - $t, 2 )." sec." );
+            }
             $t = microtime(true);
 
             // save sitemap files list to index array
@@ -207,11 +258,12 @@ foreach ($all_sections as $section_name => $section_config) {
             $store->stop();
 
             if ($is_verbose_mode) SitemapSystem::say("+ Generated " . str_pad($count, 7, ' ', STR_PAD_LEFT) . "  sitemap URLs. Consumed time: " . round(microtime(true) - $t, 2) . " sec.");
-            $t = microtime(true);
 
             // save sitemap files list to index array
             $index_of_sitemap_files = array_merge($index_of_sitemap_files, $store->getIndex());
-
+    
+            $t = microtime(true);
+            
             break;
         }
 
@@ -224,7 +276,9 @@ foreach ($all_sections as $section_name => $section_config) {
         } // end of 'csv' case*/
 
         default: {
-            if ($is_verbose_mode) SitemapSystem::say("<font color='lred'>[ERROR]</font> Unknown source type for section {$section_name}");
+            if ($is_verbose_mode) {
+                SitemapSystem::say( "<font color='lred'>[ERROR]</font> Unknown source type for section {$section_name}" );
+            }
             break;
         } // end of DEFAULT case
 
@@ -233,8 +287,16 @@ foreach ($all_sections as $section_name => $section_config) {
     // destruct SAVER instance
     $store = null;
     unset($store);
+    
+    if ($is_verbose_mode) {
+        if ($sleep_after_section != 0) {
+            SitemapSystem::say("  Sleeping for {$sleep_after_section} ms... ");
+        }
+        SitemapSystem::say();
+    }
 
-    if ($is_verbose_mode) SitemapSystem::say();
+    usleep($sleep_after_section * 1000);
+    
 } // end of foreach section
 
 /*
@@ -251,13 +313,17 @@ SitemapFileSaver::createSitemapIndex(
     $index_of_sitemap_files,
     'Today'
 );
-if ($is_verbose_mode) SitemapSystem::say("+ Generated sitemap index." . PHP_EOL);
+if ($is_verbose_mode) {
+    SitemapSystem::say( "+ Generated sitemap index.".PHP_EOL );
+}
 
 $engine->pdo_connection = null;
 
-if ($is_verbose_mode) SitemapSystem::say("<strong>Finished.</strong>" . PHP_EOL);
-if ($is_verbose_mode) SitemapSystem::say('Total spent time:  <strong>' . round( microtime(true) - $stat_total_time, 2) . '</strong> seconds. ');
-if ($is_verbose_mode) SitemapSystem::say('Peak memory usage: <strong>' . (memory_get_peak_usage(true) >> 10) . '</strong> Kbytes. ' . PHP_EOL);
+if ($is_verbose_mode) {
+    SitemapSystem::say("<strong>Finished.</strong>".PHP_EOL );
+    SitemapSystem::say('Total spent time:  <strong>' . round( microtime(true) - $stat_total_time, 2) . '</strong> seconds. ');
+    SitemapSystem::say('Peak memory usage: <strong>' . (memory_get_peak_usage(true) >> 10) . '</strong> Kbytes. ' . PHP_EOL);
+}
 
 /* EOF */
 
